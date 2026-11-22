@@ -8,7 +8,7 @@ The notes are deployed as a standalone, mobile-responsive visual website via Git
 
 ---
 
-## Book Structure & Progress (3 / 17 Chapters)
+## Book Structure & Progress (5 / 17 Chapters)
 
 ### Part I: Tabular Solution Methods
 - [ ] Chapter 1: Introduction *(Upcoming)*
@@ -19,8 +19,10 @@ The notes are deployed as a standalone, mobile-responsive visual website via Git
   - Model-based planning: policy evaluation, policy improvement theorem, policy iteration, value iteration, asynchronous DP, and Generalized Policy Iteration (GPI).
 - [x] **[Chapter 5: Monte Carlo Methods](docs/chapter_5_monte_carlo_methods_sutton_barto_2nd_ed.html)**
   - Model-free learning from experience: first-visit vs. every-visit MC, MC with exploring starts, on-policy $\varepsilon$-soft control, off-policy prediction via ordinary/weighted importance sampling, incremental implementation.
-- [ ] Chapter 6: Temporal-Difference Learning *(Upcoming)*
-- [ ] Chapter 7: $n$-step Bootstrapping *(Upcoming)*
+- [x] **[Chapter 6: Temporal-Difference Learning](docs/chapter_6_temporal_difference_learning_sutton_barto_2nd_ed.html)**
+  - The central idea of RL: TD(0) prediction, TD error $\delta_t$, advantages of TD over DP and MC, Sarsa (on-policy control), Q-learning (off-policy control), Expected Sarsa, and Double Q-learning (maximization bias).
+- [x] **[Chapter 7: $n$-step Bootstrapping](docs/chapter_7_n_step_bootstrapping_sutton_barto_2nd_ed.html)**
+  - Bridging one-step TD and full Monte Carlo: $n$-step returns $G_{t:t+n}$, error reduction property, $n$-step Sarsa, off-policy $n$-step learning via importance sampling, the $n$-step Tree Backup algorithm, and $n$-step $Q(\sigma)$.
 - [ ] Chapter 8: Planning and Learning with Tabular Methods *(Upcoming)*
 
 ### Part II: Approximate Solution Methods

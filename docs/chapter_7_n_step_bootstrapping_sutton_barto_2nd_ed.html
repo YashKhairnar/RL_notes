@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 7: n-step Bootstrapping — Sutton &amp; Barto (2nd Ed.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
+<style>
+/* Utilitarian Deep Research · answer-first compact hero · 7.1-7.7 complete n-step bootstrapping with intuition, control variates, Tree Backup & Q(sigma) · IBM Plex Sans + Source Serif 4 + IBM Plex Mono · Crisp White #FFFFFF + Slate Ink #0F172A + Cobalt #1D4ED8 + Emerald #047857 · 0px radius · 1px hairline emphasis · CSS stacked fractions, big operators, aligned equation grids & overbars (zero JS) */
+
+:root {
+  --paper: #FFFFFF;
+  --ink: #0F172A;
+  --ink2: #334155;
+  --mute: #475569;
+  --hair: #CBD5E1;
+  --accent: #1D4ED8;
+  --accent-text: #1E3A8A;
+  --accent-2: #047857;
+  --accent-2-text: #065F46;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  padding: 56px clamp(20px, 6vw, 88px) 84px;
+  max-width: 1280px;
+}
+
+.measure {
+  max-width: 72ch;
+}
+
+h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  margin: 0 0 16px;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.deck {
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink2);
+  max-width: 66ch;
+  margin: 0 0 32px;
+}
+
+.verdict {
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--hair);
+  padding: 20px 0;
+  margin: 0 0 56px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+  align-items: baseline;
+}
+
+.verdict-lead {
+  grid-column: 1 / 5;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 22px;
+  line-height: 1.32;
+  color: var(--accent-text);
+  margin: 0;
+}
+
+.verdict-body {
+  grid-column: 5 / 13;
+  margin: 0;
+  color: var(--ink2);
+}
+
+h2 {
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 28px 0 10px;
+  color: var(--ink);
+}
+
+p {
+  margin: 0 0 16px;
+  color: var(--ink2);
+}
+
+p strong {
+  color: var(--ink);
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+.sec {
+  margin-top: 64px;
+  padding-top: 28px;
+  border-top: 1px solid var(--hair);
+}
+
+.grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+.split-left {
+  grid-column: 1 / 5;
+}
+
+.split-right {
+  grid-column: 5 / 13;
+}
+
+.three-col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 24px 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+}
+
+.intuition {
+  border-left: 3px solid var(--ink);
+  padding: 2px 0 2px 16px;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+
+/* Typography & Static CSS Math */
+.math {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-style: italic;
+  color: var(--ink);
+}
+
+.math-rm {
+  font-style: normal;
+}
+
+.bb {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-weight: 700;
+  font-style: normal;
+  letter-spacing: -0.02em;
+}
+
+.cal {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.bar {
+  display: inline-block;
+  border-top: 1.4px solid currentColor;
+  line-height: 0.95;
+  padding-top: 1px;
+  font-style: italic;
+}
+
+sub, sup {
+  font-size: 0.72em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sup {
+  top: -0.45em;
+}
+
+sub {
+  bottom: -0.22em;
+}
+
+.eq-block {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: 8px 0 8px 18px;
+  margin: 18px 0;
+  overflow-x: auto;
+}
+
+.eq-line {
+  display: block;
+}
+
+.eq-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 20px;
+  row-gap: 6px;
+  align-items: baseline;
+}
+
+.eq-tag {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  white-space: nowrap;
+}
+
+.eq-dots {
+  text-align: center;
+  color: var(--mute);
+  line-height: 1;
+  padding: 2px 0;
+}
+
+.eq-label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  color: var(--mute);
+  display: block;
+  margin-top: 8px;
+  line-height: 1.45;
+}
+
+.frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 3px;
+  font-size: 0.86em;
+  line-height: 1.15;
+}
+
+.frac .num {
+  padding: 0 5px 2px;
+  border-bottom: 1.3px solid currentColor;
+}
+
+.frac .den {
+  padding: 2px 5px 0;
+}
+
+.bigop {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1;
+  margin: 0 4px;
+}
+
+.bigop .op-top,
+.bigop .op-bot {
+  font-size: 0.62em;
+  line-height: 1.1;
+  font-style: italic;
+}
+
+.bigop .op-sym {
+  font-size: 1.35em;
+  line-height: 0.92;
+  font-style: normal;
+}
+
+pre.pseudo {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink);
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  padding: 14px 0;
+  margin: 18px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  color: var(--accent-text);
+}
+
+ul, ol {
+  margin: 0 0 18px;
+  padding-left: 22px;
+  color: var(--ink2);
+}
+
+li {
+  margin-bottom: 10px;
+}
+
+li strong {
+  color: var(--ink);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 15px;
+}
+
+th {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--mute);
+  border-bottom: 2px solid var(--ink);
+  padding: 10px 12px 10px 0;
+  vertical-align: bottom;
+}
+
+td {
+  border-bottom: 1px solid var(--hair);
+  padding: 12px 12px 12px 0;
+  color: var(--ink2);
+  vertical-align: top;
+}
+
+td:first-child {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+figure {
+  margin: 32px 0;
+}
+
+.fig-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+figcaption {
+  font-size: 13px;
+  color: var(--mute);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 760px;
+}
+
+@media (max-width: 820px) {
+  .verdict, .grid-12, .three-col {
+    grid-template-columns: 1fr;
+  }
+  .verdict-lead, .verdict-body, .split-left, .split-right {
+    grid-column: 1 / -1;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav style="margin-bottom: 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px;">
+  <a href="index.html" style="color: var(--accent-text); text-decoration: none; font-weight: 500;">&larr; Back to All Chapters</a>
+</nav>
+
+<header>
+  <h1>n-step Bootstrapping: Complete Chapter 7</h1>
+  <p class="deck">Self-contained study guide for Sections 7.1–7.7 of <em>Reinforcement Learning: An Introduction</em> (2nd edition) by Richard S. Sutton and Andrew G. Barto—bridging one-step TD and full-episode Monte Carlo.</p>
+</header>
+
+<section class="verdict" aria-label="Core thesis">
+  <p class="verdict-lead">One-step TD and Monte Carlo are just the two ends of an n-step spectrum.</p>
+  <p class="verdict-body">In Chapter 5 (MC), you waited until the very end of the episode to update. In Chapter 6 (TD(0)), you updated after just 1 step. <strong>n-step bootstrapping</strong> lets you choose any intermediate horizon <span class="math">n</span>: collect <span class="math">n</span> real rewards, then bootstrap from the estimated value of the state you reach <span class="math">n</span> steps later. In practice, an intermediate <span class="math">n</span> (like 4 or 8) almost always learns faster than either extreme.</p>
+</section>
+
+<!-- SECTION 7.1 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>7.1 n-step TD prediction</h2>
+    </div>
+    <div class="split-right measure">
+      <p>Consider estimating <span class="math">v<sub>&pi;</sub></span> from sample episodes generated using <span class="math">&pi;</span>:</p>
+      <ul>
+        <li><strong>Monte Carlo methods</strong> update each visited state based on the entire sequence of rewards from that state until the end of the episode.</li>
+        <li><strong>One-step TD methods</strong> update based on the next reward only, bootstrapping from the very next state.</li>
+        <li><strong>n-step TD methods</strong> sit in between—still TD (we bootstrap by changing an earlier estimate based on how it differs from a later estimate, only that the later estimate is now <span class="math">n</span> steps later).</li>
+      </ul>
+
+      <h3>Targets: from <span class="math">n = 1</span> to <span class="math">n = &infin;</span></h3>
+      <p>Let <span class="math">V<sub>t</sub> : <span class="cal">S</span> &rarr; <span class="bb">R</span></span> be the estimate at time <span class="math">t</span> of <span class="math">v<sub>&pi;</sub></span>, and write <span class="math">G<sub>t:t+n</sub></span> for the <span class="math">n</span>-step return from time <span class="math">t</span> to <span class="math">t + n</span>:</p>
+      <div class="eq-block">
+        <div class="eq-grid">
+          <span class="eq-tag">n = 1 (TD)</span>
+          <span><i>G</i><sub><i>t</i>:<i>t</i>+1</sub> &#x2250; <i>R</i><sub><i>t</i>+1</sub> + &gamma; <i>V</i><sub><i>t</i></sub>(<i>S</i><sub><i>t</i>+1</sub>)</span>
+
+          <span class="eq-tag">n = 2</span>
+          <span><i>G</i><sub><i>t</i>:<i>t</i>+2</sub> &#x2250; <i>R</i><sub><i>t</i>+1</sub> + &gamma; <i>R</i><sub><i>t</i>+2</sub> + &gamma;<sup>2</sup> <i>V</i><sub><i>t</i>+1</sub>(<i>S</i><sub><i>t</i>+2</sub>)</span>
+
+          <span class="eq-tag"></span>
+          <span class="eq-dots">&#x22EE;</span>
+
+          <span class="eq-tag">n = &infin; (MC)</span>
+          <span><i>G</i><sub><i>t</i>:<i>T</i></sub> &#x2250; <i>R</i><sub><i>t</i>+1</sub> + &gamma; <i>R</i><sub><i>t</i>+2</sub> + &middot;&middot;&middot; + &gamma;<sup><i>T</i>&minus;<i>t</i>&minus;1</sup> <i>R</i><sub><i>T</i></sub></span>
+        </div>
+        <span class="eq-label">General n-step target (Eq. 7.1): <i>G</i><sub><i>t</i>:<i>t</i>+<i>n</i></sub> &#x2250; <i>R</i><sub><i>t</i>+1</sub> + &gamma;<i>R</i><sub><i>t</i>+2</sub> + &middot;&middot;&middot; + &gamma;<sup><i>n</i>&minus;1</sup><i>R</i><sub><i>t</i>+<i>n</i></sub> + &gamma;<sup><i>n</i></sup><i>V</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i>+<i>n</i></sub>) for <i>t</i> + <i>n</i> &lt; <i>T</i> (otherwise full <i>G</i><sub><i>t</i></sub>).</span>
+      </div>
+      <p>All <span class="math">n</span>-step returns are approximations of the full return, truncated after <span class="math">n</span> steps and corrected for the remaining steps by <span class="math">V<sub>t+n&minus;1</sub>(S<sub>t+n</sub>)</span>. Because <span class="math">n</span>-step returns for <span class="math">n &gt; 1</span> depend on future rewards not yet available at <span class="math">t &rarr; t + 1</span>, the update to <span class="math">S<sub>t</sub></span> happens at time <span class="math">t + n</span>:</p>
+      <div class="eq-block">
+        <span class="eq-line"><i>V</i><sub><i>t</i>+<i>n</i></sub>(<i>S</i><sub><i>t</i></sub>) &#x2250; <i>V</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>) + &alpha; [ <i>G</i><sub><i>t</i>:<i>t</i>+<i>n</i></sub> &minus; <i>V</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>) ]</span>
+        <span class="eq-label">Eq. (7.2) · No changes are made during the first <i>n</i>&minus;1 steps of an episode; to make up for that, an equal number of updates happen after termination before the next episode starts.</span>
+      </div>
+    </div>
+  </div>
+
+  <figure>
+    <p class="fig-title">n-step TD spans a continuous spectrum from 1-step TD(0) to full-episode Monte Carlo</p>
+    <svg viewBox="0 0 720 220" width="100%" role="img" aria-label="Backup diagrams for 1-step TD, 2-step TD, n-step TD, and Monte Carlo">
+      <!-- 1-step -->
+      <g transform="translate(95, 28)">
+        <text x="0" y="-10" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="#0F172A">1-step TD</text>
+        <line x1="0" y1="0" x2="0" y2="55" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="0" cy="0" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="0" cy="27" r="4.5" fill="#0F172A"/>
+        <circle cx="0" cy="55" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+      </g>
+      <!-- 2-step -->
+      <g transform="translate(275, 28)">
+        <text x="0" y="-10" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="#0F172A">2-step TD</text>
+        <line x1="0" y1="0" x2="0" y2="105" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="0" cy="0" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="0" cy="26" r="4.5" fill="#0F172A"/>
+        <circle cx="0" cy="52" r="7.5" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="0" cy="78" r="4.5" fill="#0F172A"/>
+        <circle cx="0" cy="105" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+      </g>
+      <!-- n-step -->
+      <g transform="translate(455, 28)">
+        <text x="0" y="-10" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="#1E3A8A">n-step TD</text>
+        <line x1="0" y1="0" x2="0" y2="85" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="0" y1="85" x2="0" y2="132" stroke="#1D4ED8" stroke-width="2" stroke-dasharray="4,3"/>
+        <circle cx="0" cy="0" r="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+        <circle cx="0" cy="26" r="4.5" fill="#1D4ED8"/>
+        <circle cx="0" cy="52" r="7.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.8"/>
+        <circle cx="0" cy="78" r="4.5" fill="#1D4ED8"/>
+        <circle cx="0" cy="132" r="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+        <text x="16" y="136" font-family="Source Serif 4, serif" font-style="italic" font-size="13" fill="#1E3A8A">V(S<tspan dy="3" font-size="9.5">t+n</tspan><tspan dy="-3">)</tspan></text>
+      </g>
+      <!-- MC -->
+      <g transform="translate(625, 28)">
+        <text x="0" y="-10" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="#065F46">MC (&infin;-step)</text>
+        <line x1="0" y1="0" x2="0" y2="95" stroke="#047857" stroke-width="2"/>
+        <line x1="0" y1="95" x2="0" y2="148" stroke="#047857" stroke-width="2" stroke-dasharray="4,3"/>
+        <circle cx="0" cy="0" r="8" fill="#FFFFFF" stroke="#047857" stroke-width="2"/>
+        <circle cx="0" cy="26" r="4.5" fill="#047857"/>
+        <circle cx="0" cy="52" r="7.5" fill="#FFFFFF" stroke="#047857" stroke-width="1.8"/>
+        <circle cx="0" cy="78" r="4.5" fill="#047857"/>
+        <rect x="-7" y="142" width="14" height="14" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+        <text x="16" y="153" font-family="IBM Plex Mono, monospace" font-size="11" fill="#065F46">T</text>
+      </g>
+    </svg>
+    <figcaption>Adapted from Sutton &amp; Barto (2nd ed.), Figure 7.1. Open circles are states; solid dots are actions; the square is the terminal state.</figcaption>
+  </figure>
+
+  <div class="measure">
+    <h3>Why n-step TD converges: the Error-Reduction Property</h3>
+    <p>An essential mathematical guarantee of <span class="math">n</span>-step returns is that their expected value is strictly closer to <span class="math">v<sub>&pi;</sub></span> than the bootstrapped estimate <span class="math">V<sub>t+n&minus;1</sub></span> is, in the worst-state sense:</p>
+    <div class="eq-block">
+      <span class="eq-line">max<sub><i>s</i> &isin; <span class="cal">S</span></sub> | <span class="bb">E</span><sub>&pi;</sub>[ <i>G</i><sub><i>t</i>:<i>t</i>+<i>n</i></sub> | <i>S</i><sub><i>t</i></sub> = <i>s</i> ] &minus; <i>v</i><sub>&pi;</sub>(<i>s</i>) | &le; &gamma;<sup><i>n</i></sup> max<sub><i>s</i> &isin; <span class="cal">S</span></sub> | <i>V</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>s</i>) &minus; <i>v</i><sub>&pi;</sub>(<i>s</i>) |</span>
+      <span class="eq-label">Eq. (7.3) · Error-reduction property: worst-case error shrinks by &gamma;<sup><i>n</i></sup> (even faster than 1-step's &gamma;).</span>
+    </div>
+
+    <pre class="pseudo">Algorithm: n-step TD for estimating V &approx; v<sub>&pi;</sub>
+Initialize V(s) arbitrarily for all s &isin; S; store states &amp; rewards in circular buffer of size n+1
+Loop for each episode:
+    Initialize and store S<sub>0</sub> &ne; terminal; T &larr; &infin;
+    For t = 0, 1, 2, ...:
+        If t &lt; T:
+            Take action A<sub>t</sub> ~ &pi;(&middot; | S<sub>t</sub>), observe R<sub>t+1</sub> and S<sub>t+1</sub>
+            Store R<sub>t+1</sub> and S<sub>t+1</sub>; if S<sub>t+1</sub> is terminal, then T &larr; t + 1
+        &tau; &larr; t &minus; n + 1   (&tau; is the time whose state's estimate is being updated)
+        If &tau; &ge; 0:
+            G &larr; &Sigma;<sub>i=&tau;+1</sub><sup>min(&tau;+n, T)</sup> &gamma;<sup>i&minus;&tau;&minus;1</sup> R<sub>i</sub>
+            If &tau; + n &lt; T: G &larr; G + &gamma;<sup>n</sup> V(S<sub>&tau;+n</sub>)
+            V(S<sub>&tau;</sub>) &larr; V(S<sub>&tau;</sub>) + &alpha; [ G &minus; V(S<sub>&tau;</sub>) ]
+    Until &tau; = T &minus; 1</pre>
+  </div>
+</section>
+
+<!-- SECTION 7.2 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>7.2 n-step Sarsa (and Expected Sarsa)</h2>
+    </div>
+    <div class="split-right measure">
+      <p>To move from prediction to <strong>control</strong>, swap state values <span class="math">V</span> for action values <span class="math">Q</span>. In <strong>n-step Sarsa</strong>, we sum <span class="math">n</span> rewards and bootstrap from <span class="math">Q<sub>t+n&minus;1</sub>(S<sub>t+n</sub>, A<sub>t+n</sub>)</span>:</p>
+      <div class="eq-block">
+        <span class="eq-line"><i>G</i><sub><i>t</i>:<i>t</i>+<i>n</i></sub> &#x2250; <i>R</i><sub><i>t</i>+1</sub> + &gamma; <i>R</i><sub><i>t</i>+2</sub> + &middot;&middot;&middot; + &gamma;<sup><i>n</i>&minus;1</sup> <i>R</i><sub><i>t</i>+<i>n</i></sub> + &gamma;<sup><i>n</i></sup> <i>Q</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i>+<i>n</i></sub>, <i>A</i><sub><i>t</i>+<i>n</i></sub>)</span>
+        <span class="eq-label">Eq. (7.4) · Update: <i>Q</i><sub><i>t</i>+<i>n</i></sub>(<i>S</i><sub><i>t</i></sub>, <i>A</i><sub><i>t</i></sub>) &larr; <i>Q</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>, <i>A</i><sub><i>t</i></sub>) + &alpha; [ <i>G</i><sub><i>t</i>:<i>t</i>+<i>n</i></sub> &minus; <i>Q</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>, <i>A</i><sub><i>t</i></sub>) ]</span>
+      </div>
+      <p><strong>n-step Expected Sarsa:</strong> Replace the final sampled <span class="math">Q<sub>t+n&minus;1</sub>(S<sub>t+n</sub>, A<sub>t+n</sub>)</span> with the expected value over all actions under <span class="math">&pi;</span>. That removes the variance of sampling the final action <span class="math">A<sub>t+n</sub></span>:</p>
+      <div class="eq-block">
+        <span class="eq-line"><span class="bar">V</span><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i>+<i>n</i></sub>) &#x2250; <span class="bigop"><span class="op-sym">&Sigma;</span><span class="op-bot"><i>a</i></span></span> &pi;(<i>a</i> | <i>S</i><sub><i>t</i>+<i>n</i></sub>) <i>Q</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i>+<i>n</i></sub>, <i>a</i>)</span>
+        <span class="eq-label">Eq. (7.8) · Expected Sarsa bootstraps from <span class="bar">V</span><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i>+<i>n</i></sub>) instead of <i>Q</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i>+<i>n</i></sub>, <i>A</i><sub><i>t</i>+<i>n</i></sub>).</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 7.3 & 7.4 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>7.3–7.4 Off-policy n-step &amp; control variates</h2>
+    </div>
+    <div class="split-right measure">
+      <p>In <strong>off-policy</strong> learning (target policy <span class="math">&pi;</span>, behavior policy <span class="math">b</span>), an <span class="math">n</span>-step return only needs importance sampling over the <span class="math">n</span> actions actually taken in that window—not the entire episode:</p>
+      <div class="eq-block">
+        <span class="eq-line"><i>V</i><sub><i>t</i>+<i>n</i></sub>(<i>S</i><sub><i>t</i></sub>) &#x2250; <i>V</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>) + &alpha; &rho;<sub><i>t</i>:<i>t</i>+<i>n</i>&minus;1</sub> [ <i>G</i><sub><i>t</i>:<i>t</i>+<i>n</i></sub> &minus; <i>V</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>) ]</span>
+        <span class="eq-line" style="margin-top: 8px;">&rho;<sub><i>t</i>:<i>h</i></sub> &#x2250; <span class="bigop"><span class="op-top">min(<i>h</i>, <i>T</i>&minus;1)</span><span class="op-sym">&Pi;</span><span class="op-bot"><i>k</i> = <i>t</i></span></span> <span class="frac"><span class="num">&pi;(<i>A</i><sub><i>k</i></sub> | <i>S</i><sub><i>k</i></sub>)</span><span class="den"><i>b</i>(<i>A</i><sub><i>k</i></sub> | <i>S</i><sub><i>k</i></sub>)</span></span></span>
+        <span class="eq-label">Eq. (7.9)–(7.10) · For <i>n</i>-step Sarsa, use &rho;<sub><i>t</i>+1:<i>t</i>+<i>n</i></sub> (since <i>A</i><sub><i>t</i></sub> is already fixed on the left-hand side).</span>
+      </div>
+
+      <h3>7.4 *Per-decision methods with control variates (reducing variance)</h3>
+      <p class="intuition"><strong>The problem with naive <span class="math">&rho;<sub>t:t+n&minus;1</sub></span>:</strong> If <span class="math">&pi;(A<sub>k</sub> | S<sub>k</sub>) = 0</span> at any step, then <span class="math">&rho; = 0</span>, which zeroes out the entire update—wasting data (and if you multiply the target <span class="math">G</span> by <span class="math">0</span> instead of the error, it pulls <span class="math">V</span> toward <span class="math">0</span>!). <strong>Control variates</strong> fix this by writing the <span class="math">n</span>-step return recursively per step:</p>
+      <div class="eq-block">
+        <span class="eq-line"><i>G</i><sub><i>t</i>:<i>h</i></sub> &#x2250; &rho;<sub><i>t</i></sub> ( <i>R</i><sub><i>t</i>+1</sub> + &gamma; <i>G</i><sub><i>t</i>+1:<i>h</i></sub> ) + (1 &minus; &rho;<sub><i>t</i></sub>) <i>V</i><sub><i>h</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>)</span>
+        <span class="eq-label">Eq. (7.13) · If &rho;<sub><i>t</i></sub> = 0, then <i>G</i><sub><i>t</i>:<i>h</i></sub> = <i>V</i><sub><i>h</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>), so the update error <i>G</i><sub><i>t</i>:<i>h</i></sub> &minus; <i>V</i><sub><i>h</i>&minus;1</sub>(<i>S</i><sub><i>t</i></sub>) = 0 (cleanly ignored!).</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 7.5 & 7.6 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>7.5–7.6 Tree Backup &amp; unifying n-step Q(&sigma;)</h2>
+    </div>
+    <div class="split-right measure">
+      <p class="intuition"><strong>7.5 Off-policy without importance sampling (Tree Backup):</strong> Q-learning and Expected Sarsa did 1-step off-policy control with <em>zero</em> importance sampling. How do you extend that to <span class="math">n</span> steps? At every step along the sampled trajectory, average over the <strong>unselected actions</strong> using their current <span class="math">Q</span> values weighted by <span class="math">&pi;(a | S)</span>, and pass the remaining <span class="math">&pi;(A<sub>t+1</sub> | S<sub>t+1</sub>)</span> weight down to the next sampled step:</p>
+      <div class="eq-block">
+        <span class="eq-line"><i>G</i><sub><i>t</i>:<i>t</i>+<i>n</i></sub> &#x2250; <i>R</i><sub><i>t</i>+1</sub> + &gamma; <span class="bigop"><span class="op-sym">&Sigma;</span><span class="op-bot"><i>a</i> &ne; <i>A</i><sub><i>t</i>+1</sub></span></span> &pi;(<i>a</i> | <i>S</i><sub><i>t</i>+1</sub>) <i>Q</i><sub><i>t</i>+<i>n</i>&minus;1</sub>(<i>S</i><sub><i>t</i>+1</sub>, <i>a</i>) + &gamma; &pi;(<i>A</i><sub><i>t</i>+1</sub> | <i>S</i><sub><i>t</i>+1</sub>) <i>G</i><sub><i>t</i>+1:<i>t</i>+<i>n</i></sub></span>
+        <span class="eq-label">Eq. (7.16) · Off-policy multi-step learning with zero importance-sampling variance.</span>
+      </div>
+
+      <h3>7.6 *A unifying algorithm: n-step Q(&sigma;)</h3>
+      <p>Introduce a parameter <span class="math">&sigma;<sub>t</sub> &isin; [0, 1]</span> at each step to slide smoothly between <strong>sampling</strong> (<span class="math">&sigma; = 1</span>, like Sarsa) and <strong>expectation</strong> (<span class="math">&sigma; = 0</span>, like Tree Backup):</p>
+      <ul>
+        <li><strong><span class="math">&sigma;<sub>k</sub> = 1</span> everywhere:</strong> Reduces to <span class="math">n</span>-step Sarsa (with control variates if off-policy).</li>
+        <li><strong><span class="math">&sigma;<sub>k</sub> = 0</span> everywhere:</strong> Reduces to <span class="math">n</span>-step Tree Backup.</li>
+        <li><strong><span class="math">&sigma;<sub>k</sub> = 1</span> except <span class="math">&sigma;<sub>t+n</sub> = 0</span>:</strong> Reduces to <span class="math">n</span>-step Expected Sarsa.</li>
+      </ul>
+    </div>
+  </div>
+
+  <figure>
+    <p class="fig-title">Q(&sigma;) unifies n-step Sarsa, Expected Sarsa, and Tree Backup under a single sampling/expectation slider</p>
+    <svg viewBox="0 0 720 200" width="100%" role="img" aria-label="Comparison of n-step Sarsa, Tree Backup, and Q(sigma) backup structures">
+      <g transform="translate(130, 28)">
+        <text x="0" y="-10" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="#0F172A">n-step Sarsa (&sigma; = 1)</text>
+        <line x1="0" y1="0" x2="0" y2="115" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="0" cy="0" r="5" fill="#0F172A"/>
+        <circle cx="0" cy="38" r="7.5" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="0" cy="76" r="5" fill="#0F172A"/>
+        <circle cx="0" cy="115" r="7.5" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <text x="0" y="150" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#475569">All sample transitions</text>
+      </g>
+      <g transform="translate(360, 28)">
+        <text x="0" y="-10" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="#1E3A8A">Tree Backup (&sigma; = 0)</text>
+        <line x1="0" y1="0" x2="0" y2="38" stroke="#1D4ED8" stroke-width="1.8"/>
+        <line x1="0" y1="38" x2="-30" y2="76" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="0" y1="38" x2="0"   y2="76" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="0" y1="38" x2="30"  y2="76" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="0" y1="76" x2="0"   y2="115" stroke="#1D4ED8" stroke-width="2"/>
+        <circle cx="0" cy="0" r="5" fill="#1D4ED8"/>
+        <circle cx="0" cy="38" r="7.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.8"/>
+        <circle cx="-30" cy="76" r="4.5" fill="#94A3B8"/>
+        <circle cx="0"   cy="76" r="5" fill="#1D4ED8"/>
+        <circle cx="30"  cy="76" r="4.5" fill="#94A3B8"/>
+        <circle cx="0" cy="115" r="7.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.8"/>
+        <text x="0" y="150" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1E3A8A">Full expectation at every state</text>
+      </g>
+      <g transform="translate(590, 28)">
+        <text x="0" y="-10" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="#065F46">Q(&sigma;) (mixed &sigma;<tspan dy="3" font-size="9.5">t</tspan><tspan dy="-3">)</tspan></text>
+        <line x1="0" y1="0" x2="0" y2="38" stroke="#047857" stroke-width="1.8"/>
+        <line x1="0" y1="38" x2="-26" y2="76" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3,2"/>
+        <line x1="0" y1="38" x2="0"   y2="76" stroke="#047857" stroke-width="2"/>
+        <line x1="0" y1="38" x2="26"  y2="76" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3,2"/>
+        <line x1="0" y1="76" x2="0"   y2="115" stroke="#047857" stroke-width="2"/>
+        <circle cx="0" cy="0" r="5" fill="#047857"/>
+        <circle cx="0" cy="38" r="7.5" fill="#FFFFFF" stroke="#047857" stroke-width="1.8"/>
+        <circle cx="-26" cy="76" r="4" fill="#94A3B8"/>
+        <circle cx="0"   cy="76" r="5" fill="#047857"/>
+        <circle cx="26"  cy="76" r="4" fill="#94A3B8"/>
+        <circle cx="0" cy="115" r="7.5" fill="#FFFFFF" stroke="#047857" stroke-width="1.8"/>
+        <text x="0" y="150" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#065F46">Blends sampling &amp; expectation</text>
+      </g>
+    </svg>
+    <figcaption>Adapted from Sutton &amp; Barto (2nd ed.), Figures 7.5, 7.7, &amp; 7.9.</figcaption>
+  </figure>
+</section>
+
+<!-- SECTION 7.7 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>7.7 Summary</h2>
+    </div>
+    <div class="split-right measure">
+      <p>Chapter 7 bridges one-step TD and Monte Carlo methods. All <span class="math">n</span>-step algorithms share one practical drawback: they require a <strong>delay of <span class="math">n</span> steps</strong> before any update can occur (and storing <span class="math">n</span> steps of experience)—a limitation that Chapter 12's <strong>eligibility traces</strong> will eliminate.</p>
+    </div>
+  </div>
+
+  <div class="three-col">
+    <div>
+      <h3>Error Reduction</h3>
+      <p>Expected <span class="math">n</span>-step returns shrink worst-case error by <span class="math">&gamma;<sup>n</sup></span>, and intermediate <span class="math">n</span> typically outperforms both <span class="math">n=1</span> and MC.</p>
+    </div>
+    <div>
+      <h3>Off-Policy via IS</h3>
+      <p>Importance sampling + control variates reweights trajectories without shrinking estimates when <span class="math">&rho; = 0</span>, though variance can still be high.</p>
+    </div>
+    <div>
+      <h3>Off-Policy via Tree Backup</h3>
+      <p>Tree Backup &amp; <span class="math">Q(&sigma;)</span> generalize Expected Sarsa to <span class="math">n</span> steps with zero importance-sampling variance.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>Sources</h2>
+  <ol>
+    <li>Sutton, R. S., &amp; Barto, A. G. (2018). <em>Reinforcement Learning: An Introduction</em> (2nd ed.), Chapter 7: n-step Bootstrapping. MIT Press. <a href="http://incompleteideas.net/book/the-book-2nd.html" target="_blank" rel="noopener noreferrer">Official Book Page</a> | <a href="https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf" target="_blank" rel="noopener noreferrer">Full PDF (Stanford)</a>.</li>
+    <li>Chapter 7 Reference Summary. <a href="https://lcalem.github.io/blog/2018/11/19/sutton-chap07-nstep" target="_blank" rel="noopener noreferrer">lcalem Chapter 7 Summary</a>.</li>
+  </ol>
+</section>
+
+</body>
+</html>

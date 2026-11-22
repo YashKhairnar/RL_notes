@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 6: Temporal-Difference Learning — Sutton &amp; Barto (2nd Ed.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+/* Utilitarian Deep Research · answer-first compact hero · 6.1-6.9 complete TD prediction & control with derivations, pseudocode & backup diagrams · IBM Plex Sans + Source Serif 4 + IBM Plex Mono · Crisp White #FFFFFF + Slate Ink #0F172A + Cobalt #1D4ED8 + Emerald #047857 · 0px radius · 1px hairline emphasis · signature DP/MC/TD(0) & Sarsa/Q/Expected Sarsa backups · SVG backup diagrams */
+
+:root {
+  --paper: #FFFFFF;
+  --ink: #0F172A;
+  --ink2: #334155;
+  --mute: #475569;
+  --hair: #CBD5E1;
+  --accent: #1D4ED8;
+  --accent-text: #1E3A8A;
+  --accent-2: #047857;
+  --accent-2-text: #065F46;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  padding: 56px clamp(20px, 6vw, 88px) 84px;
+  max-width: 1280px;
+}
+
+.measure {
+  max-width: 72ch;
+}
+
+h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  margin: 0 0 16px;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.deck {
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink2);
+  max-width: 66ch;
+  margin: 0 0 32px;
+}
+
+.verdict {
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--hair);
+  padding: 20px 0;
+  margin: 0 0 56px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+  align-items: baseline;
+}
+
+.verdict-lead {
+  grid-column: 1 / 5;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 22px;
+  line-height: 1.32;
+  color: var(--accent-text);
+  margin: 0;
+}
+
+.verdict-body {
+  grid-column: 5 / 13;
+  margin: 0;
+  color: var(--ink2);
+}
+
+h2 {
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 28px 0 10px;
+  color: var(--ink);
+}
+
+p {
+  margin: 0 0 16px;
+  color: var(--ink2);
+}
+
+p strong {
+  color: var(--ink);
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+.sec {
+  margin-top: 64px;
+  padding-top: 28px;
+  border-top: 1px solid var(--hair);
+}
+
+.grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+.split-left {
+  grid-column: 1 / 5;
+}
+
+.split-right {
+  grid-column: 5 / 13;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  margin: 24px 0;
+}
+
+.three-col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 24px 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+}
+
+.intuition {
+  border-left: 3px solid var(--ink);
+  padding: 2px 0 2px 16px;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+
+.math {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-style: italic;
+  color: var(--ink);
+}
+
+.eq-block {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: 6px 0 6px 18px;
+  margin: 18px 0;
+  overflow-wrap: break-word;
+}
+
+.eq-label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  color: var(--mute);
+  display: block;
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.deriv {
+  border-left: 2px solid var(--accent-2);
+  padding: 4px 0 4px 18px;
+  margin: 18px 0;
+}
+
+.deriv-step {
+  padding: 8px 0;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.deriv-step:last-child {
+  border-bottom: none;
+}
+
+.deriv-math {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.deriv-why {
+  font-size: 13px;
+  color: var(--mute);
+  margin-top: 2px;
+}
+
+pre.pseudo {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink);
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  padding: 14px 0;
+  margin: 18px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  color: var(--accent-text);
+}
+
+ul, ol {
+  margin: 0 0 18px;
+  padding-left: 22px;
+  color: var(--ink2);
+}
+
+li {
+  margin-bottom: 10px;
+}
+
+li strong {
+  color: var(--ink);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 15px;
+}
+
+th {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--mute);
+  border-bottom: 2px solid var(--ink);
+  padding: 10px 12px 10px 0;
+  vertical-align: bottom;
+}
+
+td {
+  border-bottom: 1px solid var(--hair);
+  padding: 12px 12px 12px 0;
+  color: var(--ink2);
+  vertical-align: top;
+}
+
+td:first-child {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+figure {
+  margin: 32px 0;
+}
+
+.fig-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+figcaption {
+  font-size: 13px;
+  color: var(--mute);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 760px;
+}
+
+@media (max-width: 820px) {
+  .verdict, .grid-12, .two-col, .three-col {
+    grid-template-columns: 1fr;
+  }
+  .verdict-lead, .verdict-body, .split-left, .split-right {
+    grid-column: 1 / -1;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav style="margin-bottom: 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px;">
+  <a href="index.html" style="color: var(--accent-text); text-decoration: none; font-weight: 500;">&larr; Back to All Chapters</a>
+</nav>
+
+<header>
+  <h1>Temporal-Difference Learning: Complete Chapter 6</h1>
+  <p class="deck">Self-contained study guide for Sections 6.1–6.9 of <em>Reinforcement Learning: An Introduction</em> (2nd edition) by Richard S. Sutton and Andrew G. Barto—the central idea of modern reinforcement learning.</p>
+</header>
+
+<section class="verdict" aria-label="Core thesis">
+  <p class="verdict-lead">Learn from raw experience like Monte Carlo, without waiting for the episode to end.</p>
+  <p class="verdict-body"><strong>Temporal-Difference (TD) learning</strong> fuses the best of both worlds: like <strong>Monte Carlo</strong>, it learns directly from sampled experience with zero knowledge of the dynamics <span class="math">p</span>; like <strong>Dynamic Programming</strong>, it <em>bootstraps</em>—updating an estimate based on other learned estimates after just a single step.</p>
+</section>
+
+<!-- SECTION 6.1 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>6.1 TD prediction</h2>
+    </div>
+    <div class="split-right measure">
+      <p class="intuition"><strong>The core intuition (no waiting for the finish line):</strong> Imagine predicting how long your drive home will take. <strong>Monte Carlo</strong> makes a guess when you leave work (30 min), says nothing the whole drive, and only updates its guess <em>after</em> you park at home and see the final clock (43 min). <strong>TD(0)</strong> updates after every single block: if you hit a 5-minute traffic jam on the first street and from the next intersection it usually takes 35 minutes, your new estimate is immediately <code>5 + 35 = 40</code> minutes—so you adjust your guess for the first street right away instead of waiting until you get home.</p>
+
+      <p>In math, suppose we want to learn <span class="math">v<sub>&pi;</sub>(s)</span> from experience under policy <span class="math">&pi;</span>. Constant-<span class="math">&alpha;</span> Monte Carlo (from Chapter 5's return <span class="math">G<sub>t</sub></span> and Chapter 2's step size <span class="math">&alpha;</span>) has to wait until the episode ends to know <span class="math">G<sub>t</sub></span>:</p>
+      <div class="eq-block">
+        V(S<sub>t</sub>) &larr; V(S<sub>t</sub>) + &alpha; [ G<sub>t</sub> &minus; V(S<sub>t</sub>) ]
+        <span class="eq-label">Eq. (6.1) · Constant-&alpha; MC: target is the actual complete return G<sub>t</sub> (must wait until termination T)</span>
+      </div>
+
+      <p><strong>TD(0)</strong> (one-step TD) updates <span class="math">V(S<sub>t</sub>)</span> on the very next step <span class="math">t + 1</span> by replacing the unknown <span class="math">G<sub>t</sub></span> with one real reward <span class="math">R<sub>t+1</sub></span> plus the discounted guess at the next state <span class="math">&gamma; V(S<sub>t+1</sub>)</span>:</p>
+      <div class="eq-block">
+        V(S<sub>t</sub>) &larr; V(S<sub>t</sub>) + &alpha; [ R<sub>t+1</sub> + &gamma; V(S<sub>t+1</sub>) &minus; V(S<sub>t</sub>) ]
+        <span class="eq-label">Eq. (6.2) · TD(0) update: move V(S<sub>t</sub>) slightly toward the one-step target R<sub>t+1</sub> + &gamma; V(S<sub>t+1</sub>)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="measure">
+    <h3>Reading the TD(0) formula piece by piece</h3>
+    <ul>
+      <li><strong>Old guess — <span class="math">V(S<sub>t</sub>)</span>:</strong> What you thought state <span class="math">S<sub>t</sub></span> was worth before taking the step.</li>
+      <li><strong>TD target — <span class="math">R<sub>t+1</sub> + &gamma; V(S<sub>t+1</sub>)</span>:</strong> Your updated, better-informed guess after seeing one real reward <span class="math">R<sub>t+1</sub></span> and landing in <span class="math">S<sub>t+1</sub></span>.</li>
+      <li><strong>TD error — <span class="math">&delta;<sub>t</sub> &doteq; R<sub>t+1</sub> + &gamma; V(S<sub>t+1</sub>) &minus; V(S<sub>t</sub>)</span>:</strong> The surprise. Positive <span class="math">&delta;<sub>t</sub></span> means things went better than expected (so <span class="math">V(S<sub>t</sub>)</span> increases); negative <span class="math">&delta;<sub>t</sub></span> means worse than expected.</li>
+      <li><strong>Why it's an estimate for two reasons:</strong> MC only samples (it doesn't know the true expectation). DP only bootstraps (it plugs in <span class="math">V</span> instead of true <span class="math">v<sub>&pi;</sub></span>). <strong>TD(0) does both:</strong> it samples one transition <span class="math">(R<sub>t+1</sub>, S<sub>t+1</sub>)</span> <em>and</em> bootstraps from <span class="math">V(S<sub>t+1</sub>)</span>.</li>
+    </ul>
+
+    <h3>TD Error <span class="math">&delta;<sub>t</sub></span> and its exact link to Monte Carlo error</h3>
+    <p>Define the <strong>TD error</strong> at step <span class="math">t</span> as <span class="math">&delta;<sub>t</sub> &doteq; R<sub>t+1</sub> + &gamma; V(S<sub>t+1</sub>) &minus; V(S<sub>t</sub>)</span> (measuring the difference between the new one-step estimate and the old estimate). If <span class="math">V</span> is held fixed during an episode, the total MC error telescopes cleanly into a discounted sum of TD errors:</p>
+    <div class="deriv">
+      <div class="deriv-step">
+        <div class="deriv-math">G<sub>t</sub> &minus; V(S<sub>t</sub>) = R<sub>t+1</sub> + &gamma;G<sub>t+1</sub> &minus; V(S<sub>t</sub>) + &gamma;V(S<sub>t+1</sub>) &minus; &gamma;V(S<sub>t+1</sub>)</div>
+        <div class="deriv-why">1. Substitute G<sub>t</sub> = R<sub>t+1</sub> + &gamma;G<sub>t+1</sub> and add/subtract &gamma;V(S<sub>t+1</sub>)</div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &delta;<sub>t</sub> + &gamma;(G<sub>t+1</sub> &minus; V(S<sub>t+1</sub>))</div>
+        <div class="deriv-why">2. Group &delta;<sub>t</sub> = R<sub>t+1</sub> + &gamma;V(S<sub>t+1</sub>) &minus; V(S<sub>t</sub>)</div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &Sigma;<sub>k=t</sub><sup>T&minus;1</sup> &gamma;<sup>k&minus;t</sup> &delta;<sub>k</sub></div>
+        <div class="deriv-why">3. Unroll recursively until termination (where V(S<sub>T</sub>) = 0, G<sub>T</sub> = 0) — Eq. (6.6)</div>
+      </div>
+    </div>
+
+    <pre class="pseudo">Algorithm: Tabular TD(0) for estimating v<sub>&pi;</sub>
+Input: policy &pi; to be evaluated, step size &alpha; &isin; (0, 1]
+Initialize V(s) arbitrarily for all s &isin; &#119982;<sup>+</sup>, except V(terminal) = 0
+
+Loop for each episode:
+    Initialize S
+    Loop for each step of episode:
+        A &larr; action given by &pi; for S
+        Take action A, observe R, S'
+        V(S) &larr; V(S) + &alpha; [ R + &gamma; V(S') &minus; V(S) ]
+        S &larr; S'
+    Until S is terminal</pre>
+  </div>
+
+  <figure>
+    <p class="fig-title">TD(0) combines MC's single-sample width with DP's one-step bootstrap depth</p>
+    <svg viewBox="0 0 720 210" width="100%" role="img" aria-label="Comparison of DP, MC, and TD(0) backup diagrams">
+      <g transform="translate(130, 32)">
+        <text x="0" y="-12" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#0F172A">DP (wide, depth 1)</text>
+        <line x1="0" y1="0" x2="-40" y2="50" stroke="#475569" stroke-width="1.8"/>
+        <line x1="0" y1="0" x2="40"  y2="50" stroke="#475569" stroke-width="1.8"/>
+        <line x1="-40" y1="50" x2="-55" y2="102" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="-40" y1="50" x2="-25" y2="102" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="40"  y1="50" x2="25"  y2="102" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="40"  y1="50" x2="55"  y2="102" stroke="#94A3B8" stroke-width="1.5"/>
+        <circle cx="0" cy="0" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="-40" cy="50" r="5" fill="#0F172A"/>
+        <circle cx="40"  cy="50" r="5" fill="#0F172A"/>
+        <circle cx="-55" cy="102" r="7" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+        <circle cx="-25" cy="102" r="7" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+        <circle cx="25"  cy="102" r="7" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+        <circle cx="55"  cy="102" r="7" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.6"/>
+        <text x="0" y="140" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#475569">Needs model p; bootstraps</text>
+      </g>
+      <g transform="translate(360, 32)">
+        <text x="0" y="-12" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#475569">MC (width 1, full depth)</text>
+        <line x1="0" y1="0"  x2="0" y2="34" stroke="#64748B" stroke-width="1.8"/>
+        <line x1="0" y1="34" x2="0" y2="68" stroke="#64748B" stroke-width="1.8"/>
+        <line x1="0" y1="68" x2="0" y2="108" stroke="#64748B" stroke-width="1.8" stroke-dasharray="4,3"/>
+        <circle cx="0" cy="0"  r="8" fill="#FFFFFF" stroke="#64748B" stroke-width="2"/>
+        <circle cx="0" cy="34" r="5" fill="#64748B"/>
+        <circle cx="0" cy="68" r="7" fill="#FFFFFF" stroke="#64748B" stroke-width="1.6"/>
+        <rect x="-7" y="102" width="14" height="14" fill="#F1F5F9" stroke="#64748B" stroke-width="1.8"/>
+        <text x="0" y="140" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#475569">Model-free; no bootstrap</text>
+      </g>
+      <g transform="translate(590, 32)">
+        <text x="0" y="-12" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#1E3A8A">TD(0) (width 1, depth 1)</text>
+        <line x1="0" y1="0"  x2="0" y2="50"  stroke="#1D4ED8" stroke-width="2.2"/>
+        <line x1="0" y1="50" x2="0" y2="102" stroke="#1D4ED8" stroke-width="2.2"/>
+        <circle cx="0" cy="0"   r="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2.2"/>
+        <circle cx="0" cy="50"  r="5" fill="#1D4ED8"/>
+        <circle cx="0" cy="102" r="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+        <text x="16" y="106" font-family="Source Serif 4, serif" font-style="italic" font-size="13" fill="#1E3A8A">V(S')</text>
+        <text x="0" y="140" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1E3A8A">Model-free AND bootstraps</text>
+      </g>
+    </svg>
+    <figcaption>Adapted from Sutton &amp; Barto (2nd ed.), Section 6.1. TD(0) samples one transition like MC, then stops after one step and bootstraps from V(S') like DP.</figcaption>
+  </figure>
+</section>
+
+<!-- SECTION 6.2 & 6.3 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>6.2–6.3 Advantages &amp; optimality of TD(0)</h2>
+    </div>
+    <div class="split-right measure">
+      <p><strong>Why TD beats DP &amp; MC in practice (6.2):</strong> Unlike DP, TD needs no dynamics model <span class="math">p</span>. Unlike MC, TD is <strong>fully online and incremental</strong>—it updates after every single step instead of waiting for episodes to finish, so it works effortlessly on continuing tasks and very long episodes.</p>
+
+      <h3>Batch updating: MC vs. TD(0) converge to <em>different</em> answers (6.3)</h3>
+      <p>Suppose you have a finite batch of experienced episodes and replay them repeatedly until values converge:</p>
+      <ul>
+        <li><strong>Batch MC</strong> converges to the sample average of observed returns—minimizing mean-squared error on the <em>training set</em>.</li>
+        <li><strong>Batch TD(0)</strong> converges to the <strong>certainty-equivalence estimate</strong>: the exact value function of the maximum-likelihood Markov model built from the observed transitions and rewards. That is why TD(0) typically achieves lower error on <em>future</em> data—and computes it in <span class="math">O(n)</span> rather than <span class="math">O(n<sup>2</sup>)</span> memory and <span class="math">O(n<sup>3</sup>)</span> compute!</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6.4 - 6.6 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>6.4–6.6 TD control: Sarsa, Q-learning, Expected Sarsa</h2>
+    </div>
+    <div class="split-right measure">
+      <p class="intuition"><strong>From prediction to control:</strong> Just as in Chapter 5, without a model we must estimate action values <span class="math">Q(s, a)</span> rather than <span class="math">V(s)</span> so we can pick <span class="math">arg max<sub>a</sub> Q(s, a)</span> directly. The three flagship TD control algorithms differ only in how they form the <strong>next-state target</strong> at <span class="math">S<sub>t+1</sub></span>:</p>
+    </div>
+  </div>
+
+  <div class="measure">
+    <h3>6.4 Sarsa (On-policy TD control)</h3>
+    <p>Named after the quintuple <span class="math">(S<sub>t</sub>, A<sub>t</sub>, R<sub>t+1</sub>, S<sub>t+1</sub>, A<sub>t+1</sub>)</span>, Sarsa samples the actual next action <span class="math">A<sub>t+1</sub></span> from the current behavior policy (e.g., <span class="math">&varepsilon;</span>-greedy):</p>
+    <div class="eq-block">
+      Q(S<sub>t</sub>, A<sub>t</sub>) &larr; Q(S<sub>t</sub>, A<sub>t</sub>) + &alpha; [ R<sub>t+1</sub> + &gamma; Q(S<sub>t+1</sub>, A<sub>t+1</sub>) &minus; Q(S<sub>t</sub>, A<sub>t</sub>) ]
+      <span class="eq-label">Eq. (6.7) · Converges to q* if all (s, a) are visited infinitely often and the policy becomes greedy in the limit (GLIE)</span>
+    </div>
+
+    <h3>6.5 Q-learning (Off-policy TD control)</h3>
+    <p>Q-learning directly approximates <span class="math">q<sub>*</sub></span> regardless of the exploratory policy being followed, by taking <span class="math">max<sub>a</sub></span> over the next state's actions (no importance sampling needed for 1-step!):</p>
+    <div class="eq-block">
+      Q(S<sub>t</sub>, A<sub>t</sub>) &larr; Q(S<sub>t</sub>, A<sub>t</sub>) + &alpha; [ R<sub>t+1</sub> + &gamma; max<sub>a</sub> Q(S<sub>t+1</sub>, a) &minus; Q(S<sub>t</sub>, A<sub>t</sub>) ]
+      <span class="eq-label">Eq. (6.8) · Off-policy: learns the optimal greedy policy while behaving &varepsilon;-greedily</span>
+    </div>
+
+    <h3>6.6 Expected Sarsa</h3>
+    <p>Instead of sampling one <span class="math">A<sub>t+1</sub></span> (Sarsa) or taking <span class="math">max</span> (Q-learning), Expected Sarsa computes the exact expectation over the next action under <span class="math">&pi;</span>—eliminating variance from random action selection:</p>
+    <div class="eq-block">
+      Q(S<sub>t</sub>, A<sub>t</sub>) &larr; Q(S<sub>t</sub>, A<sub>t</sub>) + &alpha; [ R<sub>t+1</sub> + &gamma; &Sigma;<sub>a</sub> &pi;(a | S<sub>t+1</sub>) Q(S<sub>t+1</sub>, a) &minus; Q(S<sub>t</sub>, A<sub>t</sub>) ]
+      <span class="eq-label">Eq. (6.9) · Reduces to Q-learning whenever the target policy &pi; is greedy</span>
+    </div>
+  </div>
+
+  <figure>
+    <p class="fig-title">Sarsa, Q-learning, and Expected Sarsa differ only in how they evaluate the next state S'</p>
+    <svg viewBox="0 0 720 210" width="100%" role="img" aria-label="Backup diagrams for Sarsa, Q-learning, and Expected Sarsa">
+      <g transform="translate(130, 32)">
+        <text x="0" y="-12" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#0F172A">Sarsa (on-policy)</text>
+        <line x1="0" y1="0"  x2="0" y2="50"  stroke="#0F172A" stroke-width="1.8"/>
+        <line x1="0" y1="50" x2="0" y2="102" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="0" cy="0"   r="6" fill="#0F172A"/>
+        <circle cx="0" cy="50"  r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="0" cy="102" r="6" fill="#0F172A"/>
+        <text x="16" y="106" font-family="Source Serif 4, serif" font-style="italic" font-size="13" fill="#0F172A">A'</text>
+        <text x="0" y="140" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#475569">Uses sampled next A'</text>
+      </g>
+      <g transform="translate(360, 32)">
+        <text x="0" y="-12" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#1E3A8A">Q-learning (off-policy)</text>
+        <line x1="0" y1="0"  x2="0" y2="50" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="0" y1="50" x2="-32" y2="102" stroke="#1D4ED8" stroke-width="1.8"/>
+        <line x1="0" y1="50" x2="0"   y2="102" stroke="#1D4ED8" stroke-width="1.8"/>
+        <line x1="0" y1="50" x2="32"  y2="102" stroke="#1D4ED8" stroke-width="1.8"/>
+        <path d="M -22 76 Q 0 84 22 76" fill="none" stroke="#1D4ED8" stroke-width="1.8"/>
+        <text x="0" y="72" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#1E3A8A">max</text>
+        <circle cx="0" cy="0"   r="6" fill="#1D4ED8"/>
+        <circle cx="0" cy="50"  r="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+        <circle cx="-32" cy="102" r="5" fill="#1D4ED8"/>
+        <circle cx="0"   cy="102" r="5" fill="#1D4ED8"/>
+        <circle cx="32"  cy="102" r="5" fill="#1D4ED8"/>
+        <text x="0" y="140" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#1E3A8A">Max over all actions a</text>
+      </g>
+      <g transform="translate(590, 32)">
+        <text x="0" y="-12" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#065F46">Expected Sarsa</text>
+        <line x1="0" y1="0"  x2="0" y2="50" stroke="#047857" stroke-width="2"/>
+        <line x1="0" y1="50" x2="-32" y2="102" stroke="#047857" stroke-width="1.8"/>
+        <line x1="0" y1="50" x2="0"   y2="102" stroke="#047857" stroke-width="1.8"/>
+        <line x1="0" y1="50" x2="32"  y2="102" stroke="#047857" stroke-width="1.8"/>
+        <circle cx="0" cy="0"   r="6" fill="#047857"/>
+        <circle cx="0" cy="50"  r="8" fill="#FFFFFF" stroke="#047857" stroke-width="2"/>
+        <circle cx="-32" cy="102" r="5" fill="#047857"/>
+        <circle cx="0"   cy="102" r="5" fill="#047857"/>
+        <circle cx="32"  cy="102" r="5" fill="#047857"/>
+        <text x="0" y="140" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#065F46">Expectation over &pi;(a | S')</text>
+      </g>
+    </svg>
+    <figcaption>Adapted from Sutton &amp; Barto (2nd ed.), Figures 6.5 &amp; 6.8.</figcaption>
+  </figure>
+
+  <div class="measure">
+    <pre class="pseudo">Algorithm: Q-learning (off-policy TD control)
+Initialize Q(s, a) arbitrarily, except Q(terminal, &middot;) = 0
+Loop for each episode:
+    Initialize S
+    Loop for each step of episode:
+        Choose A from S using policy derived from Q (e.g., &varepsilon;-greedy)
+        Take action A, observe R, S'
+        Q(S, A) &larr; Q(S, A) + &alpha; [ R + &gamma; max<sub>a</sub> Q(S', a) &minus; Q(S, A) ]
+        S &larr; S'
+    Until S is terminal</pre>
+  </div>
+</section>
+
+<!-- SECTION 6.7 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>6.7 Maximization bias &amp; Double Q-learning</h2>
+    </div>
+    <div class="split-right measure">
+      <p class="intuition"><strong>The hidden trap in Q-learning:</strong> Suppose all actions in a state have true value <code>0</code>, but noisy estimates <span class="math">Q(s, a)</span> fluctuate above and below zero. The maximum of noisy estimates is almost always <strong>positive</strong> (<span class="math">&#120124;[max<sub>a</sub> Q(a)] &ge; max<sub>a</sub> &#120124;[Q(a)]</span>)—creating systematic <strong>maximization bias</strong>.</p>
+      <p><strong>Solution—Double Learning:</strong> Separate <em>choosing</em> the best action from <em>evaluating</em> it by maintaining two independent tables <span class="math">Q<sub>1</sub></span> and <span class="math">Q<sub>2</sub></span>. On each step, flip a coin: with probability 0.5, use <span class="math">Q<sub>1</sub></span> to pick the maximizing action and <span class="math">Q<sub>2</sub></span> to evaluate it (otherwise swap <span class="math">Q<sub>1</sub></span> and <span class="math">Q<sub>2</sub></span>):</p>
+      <div class="eq-block">
+        Q<sub>1</sub>(S, A) &larr; Q<sub>1</sub>(S, A) + &alpha; [ R + &gamma; Q<sub>2</sub>(S', arg max<sub>a</sub> Q<sub>1</sub>(S', a)) &minus; Q<sub>1</sub>(S, A) ]
+        <span class="eq-label">Eq. (6.10) · Because Q<sub>2</sub> is independent of Q<sub>1</sub>, &#120124;[Q<sub>2</sub>(S', a*)] = q(S', a*) with zero maximization bias</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6.8 & 6.9 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>6.8–6.9 Afterstates &amp; summary</h2>
+    </div>
+    <div class="split-right measure">
+      <p><strong>Afterstate value functions (6.8):</strong> In games like Tic-Tac-Toe or chess, we know the immediate deterministic result of our move (the <em>afterstate</em>) before the opponent responds. Evaluating <span class="math">V(afterstate)</span> collapses many different <span class="math">(s, a)</span> pairs that produce the same board into one entry, accelerating learning.</p>
+    </div>
+  </div>
+
+  <div class="measure">
+    <table>
+      <thead>
+        <tr>
+          <th>Algorithm</th>
+          <th>On / Off Policy</th>
+          <th>Target at Next Step</th>
+          <th>Key Trade-off</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>TD(0)</td>
+          <td>Prediction</td>
+          <td><span class="math">R + &gamma; V(S')</span></td>
+          <td>Online, low variance, learns <span class="math">v<sub>&pi;</sub></span></td>
+        </tr>
+        <tr>
+          <td>Sarsa</td>
+          <td>On-policy</td>
+          <td><span class="math">R + &gamma; Q(S', A')</span></td>
+          <td>Learns safe exploratory value; includes exploration risk</td>
+        </tr>
+        <tr>
+          <td>Q-learning</td>
+          <td>Off-policy</td>
+          <td><span class="math">R + &gamma; max<sub>a</sub> Q(S', a)</span></td>
+          <td>Learns <span class="math">q<sub>*</sub></span> directly; suffers from maximization bias</td>
+        </tr>
+        <tr>
+          <td>Expected Sarsa</td>
+          <td>Either</td>
+          <td><span class="math">R + &gamma; &Sigma;<sub>a</sub> &pi;(a|S') Q(S', a)</span></td>
+          <td>Lower variance than Sarsa; generalizes Q-learning</td>
+        </tr>
+        <tr>
+          <td>Double Q-learning</td>
+          <td>Off-policy</td>
+          <td><span class="math">R + &gamma; Q<sub>2</sub>(S', arg max<sub>a</sub> Q<sub>1</sub>(S', a))</span></td>
+          <td>Eliminates maximization bias; 2&times; memory</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>Sources</h2>
+  <ol>
+    <li>Sutton, R. S., &amp; Barto, A. G. (2018). <em>Reinforcement Learning: An Introduction</em> (2nd ed.), Chapter 6: Temporal-Difference Learning. MIT Press. <a href="http://incompleteideas.net/book/the-book-2nd.html" target="_blank" rel="noopener noreferrer">Official Book Page</a> | <a href="https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf" target="_blank" rel="noopener noreferrer">Full PDF (Stanford)</a>.</li>
+    <li>Chapter 6 Reference Summary. <a href="https://lcalem.github.io/blog/2018/10/31/sutton-chap06-td" target="_blank" rel="noopener noreferrer">lcalem Chapter 6 Summary</a>.</li>
+  </ol>
+</section>
+
+</body>
+</html>
