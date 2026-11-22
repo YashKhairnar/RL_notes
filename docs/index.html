@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reinforcement Learning: Sutton &amp; Barto (2nd Ed.) — Comprehensive Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #FFFFFF;
+  --surface: #F8FAFC;
+  --surface-hover: #F1F5F9;
+  --ink: #0F172A;
+  --ink2: #334155;
+  --mute: #64748B;
+  --hair: #E2E8F0;
+  --accent: #1D4ED8;
+  --accent-text: #1E3A8A;
+  --accent-light: #EFF6FF;
+  --accent-2: #047857;
+  --accent-2-text: #065F46;
+  --accent-2-light: #ECFDF5;
+  --radius: 0px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  padding: 56px clamp(20px, 6vw, 88px) 96px;
+  max-width: 1200px;
+}
+
+/* Header */
+header {
+  margin-bottom: 48px;
+}
+
+.kicker {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+  display: block;
+}
+
+h1 {
+  font-size: clamp(32px, 4.5vw, 48px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+
+.deck {
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--ink2);
+  max-width: 68ch;
+  margin: 0 0 32px;
+}
+
+/* Overview Bar */
+.overview-bar {
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--hair);
+  padding: 24px 0;
+  margin-bottom: 48px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--mute);
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.stat-val {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.stat-sub {
+  font-size: 13px;
+  color: var(--mute);
+  margin-top: 2px;
+}
+
+/* Part Sections */
+.part-section {
+  margin-top: 56px;
+}
+
+.part-header {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.part-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.part-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--mute);
+}
+
+/* Chapters Grid */
+.chapters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  border: 1px solid var(--hair);
+  background: var(--paper);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.card.available {
+  border-color: var(--hair);
+  background: #FFFFFF;
+}
+
+.card.available:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.card.available::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent-2);
+}
+
+.card.upcoming {
+  opacity: 0.72;
+  background: #FCFCFD;
+  border-style: dashed;
+}
+
+.card-top {
+  margin-bottom: 16px;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.chapter-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mute);
+}
+
+.badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.badge-completed {
+  background: var(--accent-2-light);
+  color: var(--accent-2-text);
+  border: 1px solid rgba(4, 120, 87, 0.2);
+}
+
+.badge-upcoming {
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+
+.card.available .card-title a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.card.available:hover .card-title a {
+  color: var(--accent);
+}
+
+.card-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink2);
+  margin: 0 0 16px;
+}
+
+.topics-list {
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--mute);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.topics-list li {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 2px 6px;
+}
+
+.card-footer {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hair);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.read-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.read-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+footer {
+  margin-top: 84px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hair);
+  font-size: 14px;
+  color: var(--mute);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+footer a {
+  color: var(--ink2);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .chapters-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="kicker">Course Notes &amp; Derivations</span>
+  <h1>Reinforcement Learning: An Introduction</h1>
+  <p class="deck">Deep research study guides, rigorous mathematical derivations, intuitive geometric diagrams, and algorithms based on the 2nd Edition by Richard S. Sutton and Andrew G. Barto.</p>
+</header>
+
+<section class="overview-bar" aria-label="Course Overview">
+  <div class="stat-item">
+    <span class="stat-label">Source Text</span>
+    <span class="stat-val">Sutton &amp; Barto (2018)</span>
+    <span class="stat-sub">Complete 2nd Edition Reference</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-label">Progress</span>
+    <span class="stat-val">2 / 17 Chapters Available</span>
+    <span class="stat-sub">Chapters 3 &amp; 4 complete with full proofs</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-label">Format</span>
+    <span class="stat-val">Standalone Visual HTML</span>
+    <span class="stat-sub">Zero build dependencies, mobile-responsive</span>
+  </div>
+</section>
+
+<main>
+  <!-- PART I -->
+  <section class="part-section">
+    <div class="part-header">
+      <h2 class="part-title">Part I: Tabular Solution Methods</h2>
+      <span class="part-badge">Chapters 1 – 8</span>
+    </div>
+    <div class="chapters-grid">
+
+      <!-- Chapter 1 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 01</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Introduction</h3>
+          <p class="card-desc">Foundations of reinforcement learning, exploration vs. exploitation, history, and the tick-tack-toe case study.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 2 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 02</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Multi-arm Bandits</h3>
+          <p class="card-desc">Nonassociative learning, &epsilon;-greedy action selection, sample averages, tracking nonstationary problems, and UCB.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 3 -->
+      <article class="card available">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 03</span>
+            <span class="badge badge-completed">Available</span>
+          </div>
+          <h3 class="card-title">
+            <a href="chapter_3_finite_markov_decision_processes_sutton_barto_2nd_ed.html">Finite Markov Decision Processes</a>
+          </h3>
+          <p class="card-desc">The formal agent-environment interface, Markov property, return and discounting, value functions, and complete Bellman equation derivations.</p>
+          <ul class="topics-list">
+            <li>MDP Framework</li>
+            <li>Bellman Expectation</li>
+            <li>Bellman Optimality</li>
+            <li>Backup Diagrams</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <a class="read-link" href="chapter_3_finite_markov_decision_processes_sutton_barto_2nd_ed.html">Read Chapter 3 &rarr;</a>
+        </div>
+      </article>
+
+      <!-- Chapter 4 -->
+      <article class="card available">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 04</span>
+            <span class="badge badge-completed">Available</span>
+          </div>
+          <h3 class="card-title">
+            <a href="chapter_4_dynamic_programming_sutton_barto_2nd_ed.html">Dynamic Programming</a>
+          </h3>
+          <p class="card-desc">Model-based planning algorithms: policy evaluation, policy improvement theorem, policy iteration, value iteration, and generalized policy iteration (GPI).</p>
+          <ul class="topics-list">
+            <li>Policy Evaluation</li>
+            <li>Policy Iteration</li>
+            <li>Value Iteration</li>
+            <li>GPI Convergence</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <a class="read-link" href="chapter_4_dynamic_programming_sutton_barto_2nd_ed.html">Read Chapter 4 &rarr;</a>
+        </div>
+      </article>
+
+      <!-- Chapter 5 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 05</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Monte Carlo Methods</h3>
+          <p class="card-desc">Model-free learning from experience, first-visit vs. every-visit MC, MC control, and off-policy prediction via importance sampling.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 6 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 06</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Temporal-Difference Learning</h3>
+          <p class="card-desc">TD(0) prediction, boot-strapping, Sarsa (on-policy control), Q-learning (off-policy control), and Expected Sarsa.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 7 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 07</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">n-step Bootstrapping</h3>
+          <p class="card-desc">Bridging the gap between TD and Monte Carlo: n-step TD prediction, n-step Sarsa, and n-step off-policy learning.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 8 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 08</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Planning and Learning with Tabular Methods</h3>
+          <p class="card-desc">Integrating model-based and model-free approaches: Dyna-Q, prioritized sweeping, heuristics, and rollout algorithms.</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- PART II -->
+  <section class="part-section">
+    <div class="part-header">
+      <h2 class="part-title">Part II: Approximate Solution Methods</h2>
+      <span class="part-badge">Chapters 9 – 13</span>
+    </div>
+    <div class="chapters-grid">
+
+      <!-- Chapter 9 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 09</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">On-policy Prediction with Approximation</h3>
+          <p class="card-desc">Function approximation, gradient descent methods, mean squared value error, linear methods, and feature construction.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 10 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 10</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">On-policy Control with Approximation</h3>
+          <p class="card-desc">Episodic semi-gradient control, continuous state spaces, Mountain Car, and n-step semi-gradient Sarsa.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 11 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 11</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Off-policy Methods with Approximation</h3>
+          <p class="card-desc">The Deadly Triad (bootstrapping, function approximation, off-policy training), stability challenges, and Gradient-TD methods.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 12 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 12</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Eligibility Traces</h3>
+          <p class="card-desc">&lambda;-returns, forward and backward views, TD(&lambda;), True Online TD(&lambda;), and trace mechanisms.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 13 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 13</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Policy Gradient Methods</h3>
+          <p class="card-desc">Policy parameterization, Policy Gradient Theorem, REINFORCE with baseline, and actor-critic architectures.</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- PART III -->
+  <section class="part-section">
+    <div class="part-header">
+      <h2 class="part-title">Part III: Looking Further</h2>
+      <span class="part-badge">Chapters 14 – 17</span>
+    </div>
+    <div class="chapters-grid">
+
+      <!-- Chapter 14 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 14</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Psychology</h3>
+          <p class="card-desc">Classical conditioning, Pavlovian paradigms, instrumental conditioning, and cognitive models.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 15 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 15</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Neuroscience</h3>
+          <p class="card-desc">Dopamine and reward prediction error hypothesis, basal ganglia circuitry, and neural RL.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 16 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 16</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Applications and Case Studies</h3>
+          <p class="card-desc">TD-Gammon, Samuel's checkers, AlphaGo, helicopter control, and industrial RL.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 17 -->
+      <article class="card upcoming">
+        <div class="card-top">
+          <div class="card-meta">
+            <span class="chapter-num">CHAPTER 17</span>
+            <span class="badge badge-upcoming">Upcoming</span>
+          </div>
+          <h3 class="card-title">Frontiers</h3>
+          <p class="card-desc">Reward design, generalization, state construction, continuous time/action, and the future of RL.</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div>
+    Repository: <a href="https://github.com/YashKhairnar/RL_notes" target="_blank" rel="noopener">github.com/YashKhairnar/RL_notes</a>
+  </div>
+  <div>
+    Based on <em>Reinforcement Learning: An Introduction</em> by Richard S. Sutton &amp; Andrew G. Barto.
+  </div>
+</footer>
+
+</body>
+</html>
