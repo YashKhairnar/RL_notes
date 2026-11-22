@@ -2,13 +2,13 @@
 
 Deep research study notes, mathematical derivations, pseudocode, and intuitive diagrams based on Richard S. Sutton and Andrew G. Barto's *Reinforcement Learning: An Introduction* (2nd Edition).
 
-## 🌐 Live Site
+## Live Site
 The notes are deployed as a standalone, mobile-responsive visual website via GitHub Pages:  
 👉 **[https://yashkhairnar.github.io/RL_notes/](https://yashkhairnar.github.io/RL_notes/)**
 
 ---
 
-## 📚 Book Structure & Progress (3 / 17 Chapters)
+## Book Structure & Progress (3 / 17 Chapters)
 
 ### Part I: Tabular Solution Methods
 - [ ] Chapter 1: Introduction *(Upcoming)*
@@ -29,16 +29,3 @@ The notes are deployed as a standalone, mobile-responsive visual website via Git
 - [ ] Chapter 11: Off-policy Methods with Approximation *(Upcoming)*
 - [ ] Chapter 12: Eligibility Traces *(Upcoming)*
 - [ ] Chapter 13: Policy Gradient Methods *(Upcoming)*
-
-### Part III: Looking Further
-- [ ] Chapter 14: Psychology *(Upcoming)*
-- [ ] Chapter 15: Neuroscience *(Upcoming)*
-- [ ] Chapter 16: Applications and Case Studies *(Upcoming)*
-- [ ] Chapter 17: Frontiers *(Upcoming)*
-
----
-
-## 🛠 Features & Design System
-- **Self-Contained & Zero Dependencies**: Pure HTML/CSS with embedded inline SVG diagrams, backup trees, and derivations.
-- **Editorial Typography**: Styled with `IBM Plex Sans` (body & headers), `Source Serif 4` (math & editorial quotes), and `IBM Plex Mono` (code & notation).
-- **Deployment**: Hosted directly from the `/docs` folder on GitHub Pages.
