@@ -1,13 +1,44 @@
 # RL_notes
-Detailed notes, mathematical derivations, and diagrams based on Sutton and Barto's *Reinforcement Learning: An Introduction* (2nd Edition).
 
-## Live Site
-Once GitHub Pages is enabled from the `/docs` folder:
+Deep research study notes, mathematical derivations, pseudocode, and intuitive diagrams based on Richard S. Sutton and Andrew G. Barto's *Reinforcement Learning: An Introduction* (2nd Edition).
+
+## 🌐 Live Site
+The notes are deployed as a standalone, mobile-responsive visual website via GitHub Pages:  
 👉 **[https://yashkhairnar.github.io/RL_notes/](https://yashkhairnar.github.io/RL_notes/)**
 
-## Chapters Covered
-- **Part I: Tabular Solution Methods**
-  - [Chapter 3: Finite Markov Decision Processes](docs/chapter_3_finite_markov_decision_processes_sutton_barto_2nd_ed.html)
-  - [Chapter 4: Dynamic Programming](docs/chapter_4_dynamic_programming_sutton_barto_2nd_ed.html)
-  - *More chapters in progress (covering all 17 chapters of Sutton & Barto 2nd Ed.)*
+---
 
+## 📚 Book Structure & Progress (3 / 17 Chapters)
+
+### Part I: Tabular Solution Methods
+- [ ] Chapter 1: Introduction *(Upcoming)*
+- [ ] Chapter 2: Multi-arm Bandits *(Upcoming)*
+- [x] **[Chapter 3: Finite Markov Decision Processes](docs/chapter_3_finite_markov_decision_processes_sutton_barto_2nd_ed.html)**
+  - Agent-environment interface, Markov property, return & discounting, value functions, Bellman expectation & optimality equations, backup diagrams.
+- [x] **[Chapter 4: Dynamic Programming](docs/chapter_4_dynamic_programming_sutton_barto_2nd_ed.html)**
+  - Model-based planning: policy evaluation, policy improvement theorem, policy iteration, value iteration, asynchronous DP, and Generalized Policy Iteration (GPI).
+- [x] **[Chapter 5: Monte Carlo Methods](docs/chapter_5_monte_carlo_methods_sutton_barto_2nd_ed.html)**
+  - Model-free learning from experience: first-visit vs. every-visit MC, MC with exploring starts, on-policy $\varepsilon$-soft control, off-policy prediction via ordinary/weighted importance sampling, incremental implementation.
+- [ ] Chapter 6: Temporal-Difference Learning *(Upcoming)*
+- [ ] Chapter 7: $n$-step Bootstrapping *(Upcoming)*
+- [ ] Chapter 8: Planning and Learning with Tabular Methods *(Upcoming)*
+
+### Part II: Approximate Solution Methods
+- [ ] Chapter 9: On-policy Prediction with Approximation *(Upcoming)*
+- [ ] Chapter 10: On-policy Control with Approximation *(Upcoming)*
+- [ ] Chapter 11: Off-policy Methods with Approximation *(Upcoming)*
+- [ ] Chapter 12: Eligibility Traces *(Upcoming)*
+- [ ] Chapter 13: Policy Gradient Methods *(Upcoming)*
+
+### Part III: Looking Further
+- [ ] Chapter 14: Psychology *(Upcoming)*
+- [ ] Chapter 15: Neuroscience *(Upcoming)*
+- [ ] Chapter 16: Applications and Case Studies *(Upcoming)*
+- [ ] Chapter 17: Frontiers *(Upcoming)*
+
+---
+
+## 🛠 Features & Design System
+- **Self-Contained & Zero Dependencies**: Pure HTML/CSS with embedded inline SVG diagrams, backup trees, and derivations.
+- **Editorial Typography**: Styled with `IBM Plex Sans` (body & headers), `Source Serif 4` (math & editorial quotes), and `IBM Plex Mono` (code & notation).
+- **Deployment**: Hosted directly from the `/docs` folder on GitHub Pages.
