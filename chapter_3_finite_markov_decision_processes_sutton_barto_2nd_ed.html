@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 3: Finite Markov Decision Processes — Sutton &amp; Barto (2nd Ed.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+/* Utilitarian Deep Research · answer-first compact hero · self-contained 3.1-3.8 with intuition + derivations · IBM Plex Sans + Source Serif 4 + IBM Plex Mono · Crisp White #FFFFFF + Slate Ink #0F172A + Cobalt #1D4ED8 + Emerald #047857 · 0px radius · 1px hairline emphasis · signature Bellman derivations & backup diagrams · SVG loop, absorbing state, decay line chart, backup trees */
+
+:root {
+  --paper: #FFFFFF;
+  --ink: #0F172A;
+  --ink2: #334155;
+  --mute: #475569;
+  --hair: #CBD5E1;
+  --accent: #1D4ED8;
+  --accent-text: #1E3A8A;
+  --accent-2: #047857;
+  --accent-2-text: #065F46;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  padding: 56px clamp(20px, 6vw, 88px) 84px;
+  max-width: 1280px;
+}
+
+.measure {
+  max-width: 72ch;
+}
+
+h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  margin: 0 0 16px;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.deck {
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink2);
+  max-width: 66ch;
+  margin: 0 0 32px;
+}
+
+.verdict {
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--hair);
+  padding: 20px 0;
+  margin: 0 0 56px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+  align-items: baseline;
+}
+
+.verdict-lead {
+  grid-column: 1 / 5;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 22px;
+  line-height: 1.32;
+  color: var(--accent-text);
+  margin: 0;
+}
+
+.verdict-body {
+  grid-column: 5 / 13;
+  margin: 0;
+  color: var(--ink2);
+}
+
+h2 {
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 28px 0 10px;
+  color: var(--ink);
+}
+
+p {
+  margin: 0 0 16px;
+  color: var(--ink2);
+}
+
+p strong {
+  color: var(--ink);
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+.sec {
+  margin-top: 64px;
+  padding-top: 28px;
+  border-top: 1px solid var(--hair);
+}
+
+.grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+.split-left {
+  grid-column: 1 / 5;
+}
+
+.split-right {
+  grid-column: 5 / 13;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  margin: 24px 0;
+}
+
+.three-col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 24px 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+}
+
+.math {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-style: italic;
+  color: var(--ink);
+}
+
+.eq-block {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding: 6px 0 6px 18px;
+  margin: 18px 0;
+  overflow-wrap: break-word;
+}
+
+.eq-label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  color: var(--mute);
+  display: block;
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.deriv {
+  border-left: 2px solid var(--accent-2);
+  padding: 4px 0 4px 18px;
+  margin: 18px 0;
+}
+
+.deriv-step {
+  padding: 8px 0;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.deriv-step:last-child {
+  border-bottom: none;
+}
+
+.deriv-math {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.deriv-why {
+  font-size: 13px;
+  color: var(--mute);
+  margin-top: 2px;
+}
+
+code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  color: var(--accent-text);
+}
+
+ul, ol {
+  margin: 0 0 18px;
+  padding-left: 22px;
+  color: var(--ink2);
+}
+
+li {
+  margin-bottom: 10px;
+}
+
+li strong {
+  color: var(--ink);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 15px;
+}
+
+th {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--mute);
+  border-bottom: 2px solid var(--ink);
+  padding: 10px 12px 10px 0;
+  vertical-align: bottom;
+}
+
+td {
+  border-bottom: 1px solid var(--hair);
+  padding: 12px 12px 12px 0;
+  color: var(--ink2);
+  vertical-align: top;
+}
+
+td:first-child {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+figure {
+  margin: 32px 0;
+}
+
+.fig-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+figcaption {
+  font-size: 13px;
+  color: var(--mute);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 760px;
+}
+
+blockquote.pull {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(20px, 2.3vw, 28px);
+  line-height: 1.38;
+  color: var(--ink);
+  border-top: 2px solid var(--accent);
+  border-bottom: 1px solid var(--hair);
+  padding: 22px 0;
+  margin: 32px 0;
+  max-width: 56ch;
+}
+
+blockquote.pull footer {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-style: normal;
+  font-size: 14px;
+  color: var(--mute);
+  margin-top: 10px;
+}
+
+@media (max-width: 820px) {
+  .verdict, .grid-12, .two-col, .three-col {
+    grid-template-columns: 1fr;
+  }
+  .verdict-lead, .verdict-body, .split-left, .split-right {
+    grid-column: 1 / -1;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Finite Markov Decision Processes: Complete Chapter 3</h1>
+  <p class="deck">Self-contained study guide for Sections 3.1–3.8 of <em>Reinforcement Learning: An Introduction</em> (2nd edition) by Richard S. Sutton and Andrew G. Barto—written so every concept, symbol, derivation, and diagram stands on its own.</p>
+</header>
+
+<section class="verdict" aria-label="Core thesis">
+  <p class="verdict-lead">Actions now shape future states, not just immediate rewards.</p>
+  <p class="verdict-body">In Chapter 2's multi-armed bandits, every action happened in the same single situation. In a <strong>Markov Decision Process (MDP)</strong>, each action <span class="math">A<sub>t</sub></span> produces both an immediate reward <span class="math">R<sub>t+1</sub></span> and a transition to a new state <span class="math">S<sub>t+1</sub></span>. Because an action that looks bad right now might unlock high-reward states later, the agent must evaluate <strong>entire future trajectories</strong>—which value functions and Bellman equations make mathematically tractable.</p>
+</section>
+
+<!-- SECTION 3.1 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>3.1 The agent–environment interface</h2>
+    </div>
+    <div class="split-right measure">
+      <p>An MDP formalizes learning from interaction at discrete time steps <code>t = 0, 1, 2, ...</code> (which can represent fixed clock intervals or sequential decision points). At each step <span class="math">t</span>:</p>
+      <ol>
+        <li>The agent receives a representation of the environment's <strong>state</strong>, <span class="math">S<sub>t</sub> &isin; &#119982;</span>.</li>
+        <li>Based on <span class="math">S<sub>t</sub></span>, the agent selects an <strong>action</strong>, <span class="math">A<sub>t</sub> &isin; &#119964;(S<sub>t</sub>)</span>.</li>
+        <li>One step later, as a consequence of its action, the agent receives a numerical <strong>reward</strong>, <span class="math">R<sub>t+1</sub> &isin; &#8475; &sub; &#8477;</span>, and finds itself in a new state, <span class="math">S<sub>t+1</sub></span>.</li>
+      </ol>
+      <p>This creates a trajectory: <span class="math">S<sub>0</sub>, A<sub>0</sub>, R<sub>1</sub>, S<sub>1</sub>, A<sub>1</sub>, R<sub>2</sub>, S<sub>2</sub>, A<sub>2</sub>, R<sub>3</sub>, ...</span>. When <span class="math">&#119982;</span>, <span class="math">&#119964;</span>, and <span class="math">&#8475;</span> all have finite numbers of elements, the problem is a <strong>finite MDP</strong>.</p>
+    </div>
+  </div>
+
+  <figure>
+    <p class="fig-title">The agent–environment loop separates decision-making from environment dynamics</p>
+    <svg viewBox="0 0 720 240" width="100%" role="img" aria-label="Agent-Environment interaction loop diagram">
+      <rect x="260" y="20" width="200" height="58" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+      <text x="360" y="55" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Agent</text>
+      <rect x="260" y="156" width="200" height="58" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+      <text x="360" y="191" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Environment</text>
+      <path d="M 460 49 L 590 49 L 590 185 L 470 185" fill="none" stroke="#1D4ED8" stroke-width="2.5"/>
+      <polygon points="462,185 474,179 474,191" fill="#1D4ED8"/>
+      <text x="605" y="114" font-family="IBM Plex Sans, sans-serif" font-size="15" font-weight="600" fill="#1E3A8A">Action</text>
+      <text x="605" y="135" font-family="Source Serif 4, serif" font-style="italic" font-size="16" fill="#1E3A8A">A&#x209C;</text>
+      <line x1="115" y1="90" x2="175" y2="90" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <text x="85" y="94" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#475569">step t</text>
+      <path d="M 260 172 L 155 172 L 155 62 L 250 62" fill="none" stroke="#047857" stroke-width="2.5"/>
+      <polygon points="258,62 246,56 246,68" fill="#047857"/>
+      <text x="172" y="148" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#065F46">Reward</text>
+      <text x="172" y="166" font-family="Source Serif 4, serif" font-style="italic" font-size="15" fill="#065F46">R&#x209C;&#x208A;&#x2081;</text>
+      <path d="M 260 198 L 125 198 L 125 36 L 250 36" fill="none" stroke="#0F172A" stroke-width="2.5"/>
+      <polygon points="258,36 246,30 246,42" fill="#0F172A"/>
+      <text x="108" y="148" text-anchor="end" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#0F172A">State</text>
+      <text x="108" y="166" text-anchor="end" font-family="Source Serif 4, serif" font-style="italic" font-size="15" fill="#0F172A">S&#x209C;&#x208A;&#x2081;</text>
+      <text x="172" y="54" font-family="Source Serif 4, serif" font-style="italic" font-size="14" fill="#065F46">R&#x209C;</text>
+      <text x="142" y="28" font-family="Source Serif 4, serif" font-style="italic" font-size="14" fill="#0F172A">S&#x209C;</text>
+    </svg>
+    <figcaption>Adapted from Sutton &amp; Barto (2nd ed.), Figure 3.1. The dashed line marks the step transition from (S<sub>t</sub>, R<sub>t</sub>) to (S<sub>t+1</sub>, R<sub>t+1</sub>).</figcaption>
+  </figure>
+
+  <div class="measure">
+    <h3>Where is the agent–environment boundary?</h3>
+    <p>A common misconception is that the boundary matches the physical body of a robot or organism. In RL, the rule is sharper: <strong>anything the agent cannot arbitrarily change belongs to the environment</strong>. Motors, mechanical linkages, sensors, and even the mechanism that computes rewards sit inside the environment—because the agent cannot rewrite its own reward generator at will. The boundary marks the limit of the agent's <em>absolute control</em>, not its physical skin.</p>
+
+    <h3>The 4-argument dynamics function <span class="math">p</span> and the Markov property</h3>
+    <p>In a finite MDP, the random variables <span class="math">R<sub>t</sub></span> and <span class="math">S<sub>t</sub></span> have well-defined discrete probability distributions that depend <strong>only</strong> on the immediately preceding state and action:</p>
+    <div class="eq-block">
+      p(s', r | s, a) &doteq; Pr{ S<sub>t</sub> = s', R<sub>t</sub> = r | S<sub>t&minus;1</sub> = s, A<sub>t&minus;1</sub> = a }
+      <span class="eq-label">Eq. (3.2) · Joint probability over next state s' and reward r, normalized so &Sigma;<sub>s'&isin;&#119982;</sub> &Sigma;<sub>r&isin;&#8475;</sub> p(s', r | s, a) = 1 for every (s, a)</span>
+    </div>
+    <p><strong>What the Markov property means:</strong> Conditioning on <span class="math">(S<sub>t&minus;1</sub>, A<sub>t&minus;1</sub>)</span> gives the exact same probability distribution as conditioning on the entire history <span class="math">(S<sub>0</sub>, A<sub>0</sub>, ..., S<sub>t&minus;1</sub>, A<sub>t&minus;1</sub>)</span>. In other words, the state <span class="math">S<sub>t</sub></span> must be a <em>sufficient statistic</em> of the past—not because the environment literally forgets history, but because any relevant past detail (like velocity, not just position) must be encoded inside <span class="math">S<sub>t</sub></span>.</p>
+
+    <h3>Deriving transition probabilities and expected rewards from <span class="math">p</span></h3>
+    <p>Because <span class="math">p(s', r | s, a)</span> is the joint distribution of <span class="math">(s', r)</span> given <span class="math">(s, a)</span>, all other environment summaries follow directly from basic probability:</p>
+    <ul>
+      <li><strong>State-transition probabilities <span class="math">p(s' | s, a)</span>:</strong> To find the probability of landing in <span class="math">s'</span> regardless of which reward <span class="math">r</span> is received, marginalize (sum) over all possible rewards <span class="math">r &isin; &#8475;</span>:
+        <br><span class="math">p(s' | s, a) &doteq; Pr{S<sub>t</sub> = s' | S<sub>t&minus;1</sub> = s, A<sub>t&minus;1</sub> = a} = &Sigma;<sub>r &isin; &#8475;</sub> p(s', r | s, a)</span></li>
+      <li><strong>Expected reward for a state–action pair <span class="math">r(s, a)</span>:</strong> The marginal probability of receiving reward <span class="math">r</span> is <span class="math">&Sigma;<sub>s'</sub> p(s', r | s, a)</span>. Multiplying each <span class="math">r</span> by its probability and summing gives the expectation:
+        <br><span class="math">r(s, a) &doteq; &#120124;[R<sub>t</sub> | S<sub>t&minus;1</sub> = s, A<sub>t&minus;1</sub> = a] = &Sigma;<sub>r &isin; &#8475;</sub> r &Sigma;<sub>s' &isin; &#119982;</sub> p(s', r | s, a)</span></li>
+      <li><strong>Expected reward for a transition triple <span class="math">r(s, a, s')</span>:</strong> By Bayes' rule, the conditional probability of <span class="math">r</span> given <span class="math">(s, a, s')</span> is <span class="math">p(s', r | s, a) / p(s' | s, a)</span>. Taking the expectation over <span class="math">r</span> gives:
+        <br><span class="math">r(s, a, s') &doteq; &#120124;[R<sub>t</sub> | S<sub>t&minus;1</sub> = s, A<sub>t&minus;1</sub> = a, S<sub>t</sub> = s'] = &Sigma;<sub>r &isin; &#8475;</sub> r &middot; p(s', r | s, a) / p(s' | s, a)</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- SECTION 3.2 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>3.2 Goals and rewards</h2>
+    </div>
+    <div class="split-right measure">
+      <p>In reinforcement learning, the agent's entire purpose is formalized as maximizing a single scalar number—the cumulative sum of rewards <span class="math">R<sub>t</sub></span>. This might seem restrictive, but the <strong>Reward Hypothesis</strong> asserts it is universal:</p>
+    </div>
+  </div>
+
+  <blockquote class="pull">
+    "That all of what we mean by goals and purposes can be well thought of as the maximization of the expected value of the cumulative sum of a received scalar signal (called reward)."
+    <footer>— The Reward Hypothesis, Sutton &amp; Barto (2nd ed.), Section 3.2</footer>
+  </blockquote>
+
+  <div class="measure">
+    <p><strong>The golden rule of reward design—specify <em>what</em>, not <em>how</em>:</strong> The reward signal is how you tell the agent <em>what</em> you want achieved, not <em>how</em> to achieve it. If you give a chess-playing agent positive rewards for intermediate subgoals (like capturing opponent pieces), it may figure out how to farm captures while losing the game. Instead, reward only true goal attainment (<code>+1</code> for winning, <code>-1</code> for losing, <code>0</code> otherwise) and let the agent discover intermediate strategies on its own.</p>
+  </div>
+</section>
+
+<!-- SECTION 3.3 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>3.3 Returns and episodes</h2>
+    </div>
+    <div class="split-right measure">
+      <p>The agent does not try to maximize the immediate reward <span class="math">R<sub>t+1</sub></span>—it maximizes the expected <strong>return</strong> <span class="math">G<sub>t</sub></span>, a function of the entire future reward sequence <span class="math">R<sub>t+1</sub>, R<sub>t+2</sub>, R<sub>t+3</sub>, ...</span>.</p>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3>Episodic tasks (finite horizon <span class="math">T</span>)</h3>
+      <p>Interaction naturally breaks into subsequences called <strong>episodes</strong> (such as games or maze runs) that end in a special <strong>terminal state</strong> at step <span class="math">T</span>, then reset to a starting state. Each episode is independent of the next.</p>
+      <div class="eq-block">
+        G<sub>t</sub> &doteq; R<sub>t+1</sub> + R<sub>t+2</sub> + &middot;&middot;&middot; + R<sub>T</sub>
+        <span class="eq-label">Eq. (3.7) · Undiscounted return for episodic tasks</span>
+      </div>
+    </div>
+    <div>
+      <h3>Continuing tasks (<span class="math">T = &infin;, &gamma; &isin; [0, 1)</span>)</h3>
+      <p>Interaction continues forever without resets. If we simply summed rewards to infinity, the return could diverge. Introducing a <strong>discount rate</strong> <span class="math">&gamma; &isin; [0, 1)</span> makes a reward <span class="math">k</span> steps in the future worth only <span class="math">&gamma;<sup>k&minus;1</sup></span> times as much as an immediate reward.</p>
+      <div class="eq-block">
+        G<sub>t</sub> &doteq; &Sigma;<sub>k=0</sub><sup>&infin;</sup> &gamma;<sup>k</sup> R<sub>t+k+1</sub>
+        <span class="eq-label">Eq. (3.8) · &gamma; = 0 is purely myopic; &gamma; &rarr; 1 is farsighted</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="measure">
+    <h3>Derivation 1: The recursive return identity</h3>
+    <p>Notice that <span class="math">G<sub>t+1</sub> = R<sub>t+2</sub> + &gamma;R<sub>t+3</sub> + &gamma;<sup>2</sup>R<sub>t+4</sub> + &middot;&middot;&middot;</span>. Factoring <span class="math">&gamma;</span> out of all terms after <span class="math">R<sub>t+1</sub></span> connects <span class="math">G<sub>t</sub></span> directly to <span class="math">G<sub>t+1</sub></span>:</p>
+    <div class="deriv">
+      <div class="deriv-step">
+        <div class="deriv-math">G<sub>t</sub> = R<sub>t+1</sub> + &gamma;R<sub>t+2</sub> + &gamma;<sup>2</sup>R<sub>t+3</sub> + &gamma;<sup>3</sup>R<sub>t+4</sub> + &middot;&middot;&middot;</div>
+        <div class="deriv-why">By definition of G<sub>t</sub> in Eq. (3.8)</div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;= R<sub>t+1</sub> + &gamma;(R<sub>t+2</sub> + &gamma;R<sub>t+3</sub> + &gamma;<sup>2</sup>R<sub>t+4</sub> + &middot;&middot;&middot;)</div>
+        <div class="deriv-why">Factor &gamma; out of every term from k = 1 onward</div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;= R<sub>t+1</sub> + &gamma;G<sub>t+1</sub></div>
+        <div class="deriv-why">Recognize the parenthesized sum as G<sub>t+1</sub> — Eq. (3.9)</div>
+      </div>
+    </div>
+
+    <h3>Derivation 2: Why <span class="math">&gamma; &lt; 1</span> guarantees finite returns</h3>
+    <p>Suppose every reward is bounded by some constant: <span class="math">|R<sub>k</sub>| &le; R<sub>max</sub></span> for all <span class="math">k</span>. For <span class="math">0 &le; &gamma; &lt; 1</span>, let <span class="math">S = &Sigma;<sub>k=0</sub><sup>&infin;</sup> &gamma;<sup>k</sup> = 1 + &gamma; + &gamma;<sup>2</sup> + &middot;&middot;&middot;</span>. Multiplying by <span class="math">&gamma;</span> gives <span class="math">&gamma;S = &gamma; + &gamma;<sup>2</sup> + &gamma;<sup>3</sup> + &middot;&middot;&middot;</span>, so subtracting yields <span class="math">S &minus; &gamma;S = 1 &implies; S = 1 / (1 &minus; &gamma;)</span>. Therefore:</p>
+    <div class="eq-block">
+      |G<sub>t</sub>| &le; &Sigma;<sub>k=0</sub><sup>&infin;</sup> &gamma;<sup>k</sup> |R<sub>t+k+1</sub>| &le; R<sub>max</sub> &Sigma;<sub>k=0</sub><sup>&infin;</sup> &gamma;<sup>k</sup> = R<sub>max</sub> / (1 &minus; &gamma;) &lt; &infin;
+      <span class="eq-label">Because weights sum to 1/(1&minus;&gamma;), that quantity also acts as the agent's effective planning horizon</span>
+    </div>
+  </div>
+
+  <figure>
+    <p class="fig-title">Higher discount factors (&gamma;) extend the agent's effective planning horizon</p>
+    <svg viewBox="0 0 720 380" width="100%" role="img" aria-label="Line chart showing discount factor gamma^k decay over future steps k">
+      <line x1="70" y1="320" x2="580" y2="320" stroke="#0F172A" stroke-width="1.5"/>
+      <line x1="70" y1="250" x2="580" y2="250" stroke="#CBD5E1" stroke-width="1"/>
+      <line x1="70" y1="180" x2="580" y2="180" stroke="#CBD5E1" stroke-width="1"/>
+      <line x1="70" y1="110" x2="580" y2="110" stroke="#CBD5E1" stroke-width="1"/>
+      <line x1="70" y1="40"  x2="580" y2="40"  stroke="#CBD5E1" stroke-width="1"/>
+      <text x="58" y="324" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">0.00</text>
+      <text x="58" y="254" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">0.25</text>
+      <text x="58" y="184" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">0.50</text>
+      <text x="58" y="114" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">0.75</text>
+      <text x="58" y="44"  text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">1.00</text>
+      <text x="70"  y="344" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">0</text>
+      <text x="172" y="344" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">3</text>
+      <text x="274" y="344" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">6</text>
+      <text x="376" y="344" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">9</text>
+      <text x="478" y="344" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">12</text>
+      <text x="580" y="344" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#475569">15</text>
+      <text x="325" y="370" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#475569">Future steps ahead (k)</text>
+      <polyline fill="none" stroke="#047857" stroke-width="2.5"
+        points="70,40 104,42.8 138,45.6 172,48.3 206,51.0 240,53.7 274,56.4 308,59.0 342,61.7 376,64.3 410,66.9 444,69.5 478,72.0 512,74.5 546,77.1 580,79.6"/>
+      <text x="590" y="84" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#065F46">&gamma; = 0.99</text>
+      <polyline fill="none" stroke="#1D4ED8" stroke-width="2.5"
+        points="70,40 104,68.0 138,93.2 172,115.9 206,136.3 240,154.7 274,171.2 308,186.1 342,199.5 376,211.5 410,222.4 444,232.1 478,240.9 512,248.8 546,256.0 580,262.4"/>
+      <text x="590" y="267" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600" fill="#1E3A8A">&gamma; = 0.90</text>
+      <polyline fill="none" stroke="#64748B" stroke-width="2" stroke-dasharray="6,4"
+        points="70,40 104,180 138,250 172,285 206,302.5 240,311.3 274,315.6 308,317.8 342,318.9 376,319.5 410,319.7 444,319.9 478,319.9 512,320 546,320 580,320"/>
+      <text x="215" y="294" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="500" fill="#475569">&gamma; = 0.50</text>
+    </svg>
+    <figcaption>Weight &gamma;<sup>k</sup> placed on reward R<sub>t+k+1</sub> across future steps k.</figcaption>
+  </figure>
+</section>
+
+<!-- SECTION 3.4 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>3.4 Unified notation for episodic and continuing tasks</h2>
+    </div>
+    <div class="split-right measure">
+      <p>Strictly speaking, episodic tasks need an extra subscript <span class="math">i</span> for the episode number (e.g., <span class="math">S<sub>t,i</sub></span>, <span class="math">T<sub>i</sub></span>), while continuing tasks do not. Writing separate equations for both cases would be tedious.</p>
+      <p><strong>The absorbing-state trick:</strong> Treat episode termination as entering a special <strong>absorbing state</strong> <span class="math">S<sub>T</sub></span> that transitions only to itself and generates only rewards of <code>0</code> forever. Because adding infinitely many zeros does not change the sum, both episodic and continuing tasks obey one formula:</p>
+    </div>
+  </div>
+
+  <figure>
+    <p class="fig-title">An absorbing terminal state turns any finite episode into an infinite sequence with unchanged return</p>
+    <svg viewBox="0 0 700 120" width="100%" role="img" aria-label="Absorbing state transition diagram">
+      <circle cx="90" cy="65" r="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+      <text x="90" y="70" text-anchor="middle" font-family="Source Serif 4, serif" font-style="italic" font-size="16" fill="#0F172A">S&#x2080;</text>
+      <line x1="112" y1="65" x2="188" y2="65" stroke="#0F172A" stroke-width="2"/>
+      <polygon points="196,65 184,59 184,71" fill="#0F172A"/>
+      <text x="154" y="54" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#475569">R&#x2081;</text>
+      <circle cx="220" cy="65" r="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+      <text x="220" y="70" text-anchor="middle" font-family="Source Serif 4, serif" font-style="italic" font-size="16" fill="#0F172A">S&#x2081;</text>
+      <line x1="242" y1="65" x2="318" y2="65" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,4"/>
+      <polygon points="326,65 314,59 314,71" fill="#0F172A"/>
+      <text x="284" y="54" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#475569">...</text>
+      <rect x="330" y="43" width="44" height="44" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="2"/>
+      <text x="352" y="70" text-anchor="middle" font-family="Source Serif 4, serif" font-style="italic" font-size="16" fill="#1E3A8A">S&#x1D40;</text>
+      <path d="M 374 55 C 425 25, 425 105, 378 75" fill="none" stroke="#1D4ED8" stroke-width="2"/>
+      <polygon points="374,73 386,71 381,82" fill="#1D4ED8"/>
+      <text x="435" y="69" font-family="IBM Plex Mono, monospace" font-size="13" fill="#1E3A8A">R = 0 forever</text>
+    </svg>
+    <figcaption>Adapted from Sutton &amp; Barto (2nd ed.), Section 3.4.</figcaption>
+  </figure>
+
+  <div class="measure">
+    <div class="eq-block">
+      G<sub>t</sub> &doteq; &Sigma;<sub>k=t+1</sub><sup>T</sup> &gamma;<sup>k&minus;t&minus;1</sup> R<sub>k</sub>
+      <span class="eq-label">Eq. (3.11) · Works for episodic tasks (T &lt; &infin;, &gamma; &le; 1) and continuing tasks (T = &infin;, &gamma; &lt; 1)—just not T = &infin; and &gamma; = 1 together</span>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3.5 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>3.5 Policies and value functions</h2>
+    </div>
+    <div class="split-right measure">
+      <p>A <strong>policy</strong> <span class="math">&pi;</span> is a mapping from states to probabilities of selecting each possible action: <span class="math">&pi;(a | s) &doteq; Pr{A<sub>t</sub> = a | S<sub>t</sub> = s}</span>. Value functions answer "how good is it to be in state <span class="math">s</span> (or take action <span class="math">a</span> in <span class="math">s</span>) if I follow policy <span class="math">&pi;</span> from now on?"</p>
+      <ul>
+        <li><strong>State-value function:</strong> <span class="math">v<sub>&pi;</sub>(s) &doteq; &#120124;<sub>&pi;</sub>[G<sub>t</sub> | S<sub>t</sub> = s]</span> (value of terminal state is always <code>0</code>).</li>
+        <li><strong>Action-value function:</strong> <span class="math">q<sub>&pi;</sub>(s, a) &doteq; &#120124;<sub>&pi;</sub>[G<sub>t</sub> | S<sub>t</sub> = s, A<sub>t</sub> = a]</span> (take <span class="math">a</span> once, then follow <span class="math">&pi;</span>).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="measure">
+    <h3>Derivation 3: Bellman expectation equation for <span class="math">v<sub>&pi;</sub>(s)</span></h3>
+    <p>The Bellman equation expresses the value of a state <span class="math">s</span> in terms of the values of its possible successor states <span class="math">s'</span>. Here is every algebraic step from first principles:</p>
+    <div class="deriv">
+      <div class="deriv-step">
+        <div class="deriv-math">v<sub>&pi;</sub>(s) = &#120124;<sub>&pi;</sub>[G<sub>t</sub> | S<sub>t</sub> = s]</div>
+        <div class="deriv-why">1. Definition of v<sub>&pi;</sub>(s) — Eq. (3.12)</div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &#120124;<sub>&pi;</sub>[R<sub>t+1</sub> + &gamma;G<sub>t+1</sub> | S<sub>t</sub> = s]</div>
+        <div class="deriv-why">2. Substitute recursive return G<sub>t</sub> = R<sub>t+1</sub> + &gamma;G<sub>t+1</sub></div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &Sigma;<sub>a</sub> &pi;(a | s) &#120124;<sub>&pi;</sub>[R<sub>t+1</sub> + &gamma;G<sub>t+1</sub> | S<sub>t</sub> = s, A<sub>t</sub> = a]</div>
+        <div class="deriv-why">3. Law of total expectation: average over policy's action probabilities &pi;(a | s)</div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &Sigma;<sub>a</sub> &pi;(a | s) &Sigma;<sub>s', r</sub> p(s', r | s, a) &#120124;<sub>&pi;</sub>[r + &gamma;G<sub>t+1</sub> | S<sub>t</sub> = s, A<sub>t</sub> = a, S<sub>t+1</sub> = s', R<sub>t+1</sub> = r]</div>
+        <div class="deriv-why">4. Law of total expectation: average over environment dynamics p(s', r | s, a)</div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &Sigma;<sub>a</sub> &pi;(a | s) &Sigma;<sub>s', r</sub> p(s', r | s, a) [ r + &gamma; &#120124;<sub>&pi;</sub>[G<sub>t+1</sub> | S<sub>t+1</sub> = s'] ]</div>
+        <div class="deriv-why">5. Linearity of expectation + Markov property (future return G<sub>t+1</sub> depends only on S<sub>t+1</sub>)</div>
+      </div>
+      <div class="deriv-step">
+        <div class="deriv-math">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &Sigma;<sub>a</sub> &pi;(a | s) &Sigma;<sub>s', r</sub> p(s', r | s, a) [ r + &gamma; v<sub>&pi;</sub>(s') ]</div>
+        <div class="deriv-why">6. Recognize &#120124;<sub>&pi;</sub>[G<sub>t+1</sub> | S<sub>t+1</sub> = s'] = v<sub>&pi;</sub>(s') — Bellman Eq. (3.14)</div>
+      </div>
+    </div>
+
+    <h3>Derivation 4: Linking <span class="math">v<sub>&pi;</sub></span> and <span class="math">q<sub>&pi;</sub></span> + why <span class="math">v<sub>&pi;</sub></span> is unique</h3>
+    <p>Look at step 3 above: the inner expectation <span class="math">&#120124;<sub>&pi;</sub>[R<sub>t+1</sub> + &gamma;G<sub>t+1</sub> | S<sub>t</sub> = s, A<sub>t</sub> = a]</span> is literally <span class="math">q<sub>&pi;</sub>(s, a)</span>. That gives two exact bridge equations:</p>
+    <div class="eq-block">
+      v<sub>&pi;</sub>(s) = &Sigma;<sub>a</sub> &pi;(a | s) q<sub>&pi;</sub>(s, a) &nbsp;&nbsp;&nbsp;and&nbsp;&nbsp;&nbsp; q<sub>&pi;</sub>(s, a) = &Sigma;<sub>s', r</sub> p(s', r | s, a) [ r + &gamma; v<sub>&pi;</sub>(s') ]
+      <span class="eq-label">Substituting v<sub>&pi;</sub>(s') into q<sub>&pi;</sub>(s, a) yields q<sub>&pi;</sub>(s, a) = &Sigma;<sub>s', r</sub> p(s', r | s, a) [ r + &gamma; &Sigma;<sub>a'</sub> &pi;(a' | s') q<sub>&pi;</sub>(s', a') ]</span>
+    </div>
+    <p><strong>Why <span class="math">v<sub>&pi;</sub></span> is unique:</strong> For a fixed policy <span class="math">&pi;</span>, Eq. (3.14) is a system of <span class="math">|&#119982;|</span> <em>linear</em> equations in <span class="math">|&#119982;|</span> unknowns. In matrix notation, <span class="math">v<sub>&pi;</sub> = r<sup>&pi;</sup> + &gamma; P<sup>&pi;</sup> v<sub>&pi;</sub></span>, where <span class="math">r<sup>&pi;</sup><sub>s</sub> = &Sigma;<sub>a</sub> &pi;(a | s) r(s, a)</span> and <span class="math">P<sup>&pi;</sup><sub>ss'</sub> = &Sigma;<sub>a</sub> &pi;(a | s) p(s' | s, a)</span>. Because <span class="math">P<sup>&pi;</sup></span> has eigenvalues <span class="math">&le; 1</span> and <span class="math">&gamma; &lt; 1</span>, <span class="math">(I &minus; &gamma; P<sup>&pi;</sup>)</span> is always invertible, giving the unique solution <span class="math">v<sub>&pi;</sub> = (I &minus; &gamma; P<sup>&pi;</sup>)<sup>&minus;1</sup> r<sup>&pi;</sup></span>.</p>
+  </div>
+</section>
+
+<!-- SECTION 3.6 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>3.6 Optimal policies and optimal value functions</h2>
+    </div>
+    <div class="split-right measure">
+      <p>We say policy <span class="math">&pi;</span> is better than or equal to <span class="math">&pi;'</span> (<span class="math">&pi; &ge; &pi;'</span>) if and only if <span class="math">v<sub>&pi;</sub>(s) &ge; v<sub>&pi;'</sub>(s)</span> for <strong>every</strong> state <span class="math">s &isin; &#119982;</span>. Why is this only a <em>partial</em> ordering? Because policy <span class="math">&pi;<sub>1</sub></span> might be better in state <span class="math">s<sub>1</sub></span> while <span class="math">&pi;<sub>2</sub></span> is better in state <span class="math">s<sub>2</sub></span>.</p>
+      <p>Remarkably, in every finite MDP there is <strong>always at least one optimal policy</strong> <span class="math">&pi;<sub>*</sub></span> that is <span class="math">&ge;</span> all other policies in <em>every</em> state simultaneously. Multiple optimal policies may exist (when actions tie), but they all share the exact same optimal value functions: <span class="math">v<sub>*</sub>(s) &doteq; max<sub>&pi;</sub> v<sub>&pi;</sub>(s)</span> and <span class="math">q<sub>*</sub>(s, a) &doteq; max<sub>&pi;</sub> q<sub>&pi;</sub>(s, a)</span>.</p>
+    </div>
+  </div>
+
+  <div class="measure">
+    <h3>Derivation 5: Bellman optimality equations</h3>
+    <p>Because an optimal policy <span class="math">&pi;<sub>*</sub></span> must select an action that maximizes expected return in every state, <span class="math">v<sub>*</sub>(s) = max<sub>a</sub> q<sub>*</sub>(s, a)</span> (no averaging over <span class="math">&pi;</span> needed). Combining this with <span class="math">q<sub>*</sub>(s, a) = &#120124;[R<sub>t+1</sub> + &gamma; v<sub>*</sub>(S<sub>t+1</sub>) | S<sub>t</sub> = s, A<sub>t</sub> = a]</span> gives:</p>
+    <div class="eq-block">
+      v<sub>*</sub>(s) = max<sub>a</sub> &Sigma;<sub>s', r</sub> p(s', r | s, a) [ r + &gamma; v<sub>*</sub>(s') ]
+      <span class="eq-label">Eq. (3.19) · Bellman optimality equation for v<sub>*</sub> (nonlinear because of max<sub>a</sub>, so linear algebra cannot invert it directly)</span>
+    </div>
+    <div class="eq-block">
+      q<sub>*</sub>(s, a) = &Sigma;<sub>s', r</sub> p(s', r | s, a) [ r + &gamma; max<sub>a'</sub> q<sub>*</sub>(s', a') ]
+      <span class="eq-label">Eq. (3.20) · Bellman optimality equation for q<sub>*</sub> (obtained by substituting v<sub>*</sub>(s') = max<sub>a'</sub> q<sub>*</sub>(s', a'))</span>
+    </div>
+  </div>
+
+  <figure>
+    <p class="fig-title">Backup diagrams replace policy averaging (&pi;) with maximization (max) under optimality</p>
+    <svg viewBox="0 0 720 260" width="100%" role="img" aria-label="Backup diagrams for v_pi, q_pi, v_star, and q_star">
+      <g transform="translate(90, 36)">
+        <text x="0" y="-14" text-anchor="middle" font-family="Source Serif 4, serif" font-style="italic" font-size="16" font-weight="600" fill="#0F172A">v&#x03C0;(s)</text>
+        <line x1="0" y1="0" x2="-48" y2="62" stroke="#475569" stroke-width="1.8"/>
+        <line x1="0" y1="0" x2="0"   y2="62" stroke="#475569" stroke-width="1.8"/>
+        <line x1="0" y1="0" x2="48"  y2="62" stroke="#475569" stroke-width="1.8"/>
+        <line x1="-48" y1="62" x2="-66" y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="-48" y1="62" x2="-30" y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="0"   y1="62" x2="-12" y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="0"   y1="62" x2="12"  y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="48"  y1="62" x2="30"  y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="48"  y1="62" x2="66"  y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <circle cx="0" cy="0" r="10" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="-48" cy="62" r="5" fill="#0F172A"/>
+        <circle cx="0"   cy="62" r="5" fill="#0F172A"/>
+        <circle cx="48"  cy="62" r="5" fill="#0F172A"/>
+        <circle cx="-66" cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="-30" cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="-12" cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="12"  cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="30"  cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="66"  cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <text x="0" y="168" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#475569">Average over &pi; and p</text>
+      </g>
+      <g transform="translate(270, 36)">
+        <text x="0" y="-14" text-anchor="middle" font-family="Source Serif 4, serif" font-style="italic" font-size="16" font-weight="600" fill="#0F172A">q&#x03C0;(s, a)</text>
+        <line x1="0" y1="0" x2="-36" y2="62" stroke="#475569" stroke-width="1.8"/>
+        <line x1="0" y1="0" x2="36"  y2="62" stroke="#475569" stroke-width="1.8"/>
+        <line x1="-36" y1="62" x2="-54" y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="-36" y1="62" x2="-18" y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="36"  y1="62" x2="18"  y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="36"  y1="62" x2="54"  y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <circle cx="0" cy="0" r="6" fill="#0F172A"/>
+        <circle cx="-36" cy="62" r="9" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="36"  cy="62" r="9" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="-54" cy="128" r="5" fill="#0F172A"/>
+        <circle cx="-18" cy="128" r="5" fill="#0F172A"/>
+        <circle cx="18"  cy="128" r="5" fill="#0F172A"/>
+        <circle cx="54"  cy="128" r="5" fill="#0F172A"/>
+        <text x="0" y="168" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#475569">Average over p then &pi;</text>
+      </g>
+      <g transform="translate(450, 36)">
+        <text x="0" y="-14" text-anchor="middle" font-family="Source Serif 4, serif" font-style="italic" font-size="16" font-weight="600" fill="#1E3A8A">v*(s)</text>
+        <line x1="0" y1="0" x2="-48" y2="62" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="0" y1="0" x2="0"   y2="62" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="0" y1="0" x2="48"  y2="62" stroke="#1D4ED8" stroke-width="2"/>
+        <path d="M -26 34 Q 0 46 26 34" fill="none" stroke="#1D4ED8" stroke-width="2"/>
+        <text x="0" y="31" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" fill="#1E3A8A">max</text>
+        <line x1="-48" y1="62" x2="-60" y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="-48" y1="62" x2="-36" y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="0"   y1="62" x2="-10" y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="0"   y1="62" x2="10"  y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="48"  y1="62" x2="36"  y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <line x1="48"  y1="62" x2="60"  y2="128" stroke="#94A3B8" stroke-width="1.5"/>
+        <circle cx="0" cy="0" r="10" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2.2"/>
+        <circle cx="-48" cy="62" r="5" fill="#1D4ED8"/>
+        <circle cx="0"   cy="62" r="5" fill="#1D4ED8"/>
+        <circle cx="48"  cy="62" r="5" fill="#1D4ED8"/>
+        <circle cx="-60" cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="-36" cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="-10" cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="10"  cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="36"  cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <circle cx="60"  cy="128" r="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.8"/>
+        <text x="0" y="168" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#1E3A8A">Max over a, avg over p</text>
+      </g>
+      <g transform="translate(630, 36)">
+        <text x="0" y="-14" text-anchor="middle" font-family="Source Serif 4, serif" font-style="italic" font-size="16" font-weight="600" fill="#065F46">q*(s, a)</text>
+        <line x1="0" y1="0" x2="-36" y2="62" stroke="#475569" stroke-width="1.8"/>
+        <line x1="0" y1="0" x2="36"  y2="62" stroke="#475569" stroke-width="1.8"/>
+        <line x1="-36" y1="62" x2="-54" y2="128" stroke="#047857" stroke-width="1.8"/>
+        <line x1="-36" y1="62" x2="-18" y2="128" stroke="#047857" stroke-width="1.8"/>
+        <line x1="36"  y1="62" x2="18"  y2="128" stroke="#047857" stroke-width="1.8"/>
+        <line x1="36"  y1="62" x2="54"  y2="128" stroke="#047857" stroke-width="1.8"/>
+        <path d="M -46 94 Q -36 102 -26 94" fill="none" stroke="#047857" stroke-width="1.8"/>
+        <path d="M 26 94 Q 36 102 46 94" fill="none" stroke="#047857" stroke-width="1.8"/>
+        <text x="-36" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#065F46">max</text>
+        <text x="36"  y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#065F46">max</text>
+        <circle cx="0" cy="0" r="6" fill="#065F46"/>
+        <circle cx="-36" cy="62" r="9" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="36"  cy="62" r="9" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+        <circle cx="-54" cy="128" r="5" fill="#047857"/>
+        <circle cx="-18" cy="128" r="5" fill="#047857"/>
+        <circle cx="18"  cy="128" r="5" fill="#047857"/>
+        <circle cx="54"  cy="128" r="5" fill="#047857"/>
+        <text x="0" y="168" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#065F46">Avg over p, max over a'</text>
+      </g>
+    </svg>
+    <figcaption>Hollow circles are states; solid dots are state–action pairs. Read bottom-up: successor values are averaged (or maximized) and backed up to the root.</figcaption>
+  </figure>
+
+  <div class="measure">
+    <h3>Why <span class="math">v<sub>*</sub></span> turns planning into 1-step search, and <span class="math">q<sub>*</sub></span> needs no model at all</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>If you know</th>
+          <th>How to extract optimal policy &pi;<sub>*</sub>(s)</th>
+          <th>Model p(s', r | s, a) needed?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Optimal state value v<sub>*</sub>(s)</td>
+          <td>One-step lookahead: <span class="math">arg max<sub>a</sub> &Sigma;<sub>s', r</sub> p(s', r | s, a)[r + &gamma; v<sub>*</sub>(s')]</span></td>
+          <td class="num">Yes</td>
+        </tr>
+        <tr>
+          <td>Optimal action value q<sub>*</sub>(s, a)</td>
+          <td>Direct lookup: <span class="math">arg max<sub>a</sub> q<sub>*</sub>(s, a)</span></td>
+          <td class="num">No</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Because <span class="math">v<sub>*</sub></span> already summarizes the optimal future return from every successor state <span class="math">s'</span>, a greedy one-step lookahead is globally optimal. Knowing <span class="math">q<sub>*</sub></span> goes one step further: it caches the result of that one-step lookahead for every action <span class="math">a</span>, so the agent can act optimally without knowing <span class="math">p</span>.</p>
+  </div>
+</section>
+
+<!-- SECTION 3.7 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>3.7 Optimality and approximation</h2>
+    </div>
+    <div class="split-right measure">
+      <p>Although the Bellman optimality equations define <span class="math">v<sub>*</sub></span> and <span class="math">q<sub>*</sub></span> uniquely, solving them directly is rarely feasible. An exact solution requires three things that almost never hold simultaneously:</p>
+      <ol>
+        <li><strong>Accurate environment dynamics:</strong> We must know <span class="math">p(s', r | s, a)</span> exactly.</li>
+        <li><strong>Sufficient compute and memory:</strong> <span class="math">|&#119982;|</span> must be small enough to store a table and solve <span class="math">|&#119982;|</span> nonlinear equations.</li>
+        <li><strong>The Markov property:</strong> The state representation must capture all relevant history.</li>
+      </ol>
+      <p>In real problems, <span class="math">|&#119982;|</span> is astronomically large, so we must use <strong>approximate</strong> parameterized functions rather than tables. <strong>Why online RL succeeds where exhaustive solvers fail:</strong> Online reinforcement learning naturally spends its approximation budget on <em>frequently encountered states</em>—making near-optimal decisions where the agent actually spends time while accepting larger errors on rare states that almost never occur.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3.8 -->
+<section class="sec">
+  <div class="grid-12">
+    <div class="split-left">
+      <h2>3.8 Summary</h2>
+    </div>
+    <div class="split-right measure">
+      <p>Chapter 3 builds the mathematical foundation for the rest of the book: every subsequent algorithm (Dynamic Programming, Monte Carlo, Temporal-Difference, and Policy Gradients) is a concrete way of solving or approximating the Bellman equations defined here.</p>
+    </div>
+  </div>
+
+  <div class="three-col">
+    <div>
+      <h3>MDP Formalism</h3>
+      <p>The dynamics <span class="math">p(s', r | s, a)</span> encode one-step transitions and rewards under the Markov property. Rewards define <em>what</em> the goal is; <span class="math">&gamma;</span> sets the horizon.</p>
+    </div>
+    <div>
+      <h3>Value &amp; Bellman Equations</h3>
+      <p><span class="math">v<sub>&pi;</sub></span> and <span class="math">q<sub>&pi;</sub></span> satisfy linear consistency equations; <span class="math">v<sub>*</sub></span> and <span class="math">q<sub>*</sub></span> satisfy nonlinear optimality equations via <span class="math">max</span>.</p>
+    </div>
+    <div>
+      <h3>From Theory to Algorithms</h3>
+      <p>Evaluating a fixed <span class="math">&pi;</span> is <strong>prediction</strong>; finding <span class="math">&pi;<sub>*</sub></span> is <strong>control</strong>. Real problems require approximate, online methods weighted by state visitation.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>Sources</h2>
+  <ol>
+    <li>Sutton, R. S., &amp; Barto, A. G. (2018). <em>Reinforcement Learning: An Introduction</em> (2nd ed.), Chapter 3: Finite Markov Decision Processes. MIT Press. <a href="http://incompleteideas.net/book/the-book-2nd.html" target="_blank" rel="noopener noreferrer">Official Book Page</a> | <a href="https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf" target="_blank" rel="noopener noreferrer">Full PDF (Stanford)</a>.</li>
+  </ol>
+</section>
+
+</body>
+</html>
