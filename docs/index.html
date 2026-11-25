@@ -6,7 +6,7 @@
 <title>Reinforcement Learning: Sutton &amp; Barto (2nd Ed.) — Comprehensive Notes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --paper: #FFFFFF;
@@ -32,7 +32,7 @@
 html {
   background: var(--paper);
   color: var(--ink);
-  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Google Sans', Arial, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -50,7 +50,7 @@ header {
 }
 
 .kicker {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Google Sans', Arial, sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: var(--accent);
@@ -94,7 +94,7 @@ h1 {
 }
 
 .stat-label {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Google Sans', Arial, sans-serif;
   font-size: 12px;
   text-transform: uppercase;
   color: var(--mute);
@@ -139,7 +139,7 @@ h1 {
 }
 
 .part-badge {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Google Sans', Arial, sans-serif;
   font-size: 12px;
   color: var(--mute);
 }
@@ -200,14 +200,14 @@ h1 {
 }
 
 .chapter-num {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Google Sans', Arial, sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: var(--mute);
 }
 
 .badge {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Google Sans', Arial, sans-serif;
   font-size: 11px;
   padding: 3px 8px;
   border-radius: var(--radius);
@@ -253,7 +253,7 @@ h1 {
 
 .topics-list {
   font-size: 12px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Google Sans', Arial, sans-serif;
   color: var(--mute);
   margin: 0;
   padding: 0;
@@ -497,14 +497,23 @@ footer a {
     <div class="chapters-grid">
 
       <!-- Chapter 9 -->
-      <article class="card upcoming">
+      <article class="card available">
         <div class="card-top">
           <div class="card-meta">
             <span class="chapter-num">CHAPTER 09</span>
-            <span class="badge badge-upcoming">Upcoming</span>
+            <span class="badge badge-completed">Available · 9.1–9.5</span>
           </div>
-          <h3 class="card-title">On-policy Prediction with Approximation</h3>
-          <p class="card-desc">Function approximation, gradient descent methods, mean squared value error, linear methods, and feature construction.</p>
+          <h3 class="card-title"><a href="chapter_9_on_policy_prediction.html">On-policy prediction</a></h3>
+          <p class="card-desc">Function approximation, the prediction objective, gradient and semi-gradient methods, and linear prediction.</p>
+          <ul class="topics-list">
+            <li>Function Approximation</li>
+            <li>Prediction Objective</li>
+            <li>Semi-gradient TD</li>
+            <li>Linear Methods</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <a class="read-link" href="chapter_9_on_policy_prediction.html">Read Chapter 9 &rarr;</a>
         </div>
       </article>
 
@@ -545,14 +554,17 @@ footer a {
       </article>
 
       <!-- Chapter 13 -->
-      <article class="card upcoming">
+      <article class="card available">
         <div class="card-top">
           <div class="card-meta">
             <span class="chapter-num">CHAPTER 13</span>
-            <span class="badge badge-upcoming">Upcoming</span>
+            <span class="badge badge-completed">Available · Intro &amp; 13.1</span>
           </div>
-          <h3 class="card-title">Policy Gradient Methods</h3>
-          <p class="card-desc">Policy parameterization, Policy Gradient Theorem, REINFORCE with baseline, and actor-critic architectures.</p>
+          <h3 class="card-title"><a href="chapter_13_policy_gradient_methods_sutton_barto_2nd_ed.html">Policy Gradient Methods</a></h3>
+          <p class="card-desc">An introduction to policy gradients, policy approximation, softmax action preferences, and the advantages of learning a policy directly.</p>
+        </div>
+        <div class="card-footer">
+          <a class="read-link" href="chapter_13_policy_gradient_methods_sutton_barto_2nd_ed.html">Read Chapter 13 &rarr;</a>
         </div>
       </article>
 

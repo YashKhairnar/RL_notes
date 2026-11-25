@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 9: On-policy prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0F172A;
+      --muted: #475569;
+      --paper: #FFFFFF;
+      --card: #FFFFFF;
+      --line: #CBD5E1;
+      --blue: #1D4ED8;
+      --blue-soft: #EFF6FF;
+      --green: #047857;
+      --green-soft: #ECFDF5;
+      --gold: #9A6700;
+      --gold-soft: #FFFBEB;
+      --purple: #6D28D9;
+      --purple-soft: #F5F3FF;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font: 16px/1.65 'Google Sans', Arial, sans-serif;
+      padding: 56px clamp(20px, 6vw, 88px) 84px;
+      max-width: 1280px;
+    }
+    .wrap { width: 100%; margin: 0; }
+    header {
+      padding: 0 0 20px;
+      background: transparent;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow { color: var(--blue); font-family: inherit; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: .78rem; }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: -.025em; }
+    h1 { max-width: 760px; margin: 10px 0 12px; font-size: clamp(32px, 4vw, 48px); }
+    h2 { margin: 0 0 14px; font-size: clamp(22px, 2.4vw, 30px); }
+    h3 { margin: 28px 0 10px; font-size: 18px; line-height: 1.4; }
+    p { margin: 0 0 16px; color: #334155; }
+    p strong, li strong { color: var(--ink); }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+    .chapter-nav { display: flex; flex-wrap: wrap; gap: 6px 20px; padding: 14px 0; margin-bottom: 24px; border-bottom: 1px solid var(--line); font-size: .88rem; }
+    .chapter-nav a { text-decoration: none; padding: 3px 0; }
+    .chapter-nav a:hover { text-decoration: underline; }
+    .lead { max-width: 720px; color: #334155; font-size: 18px; line-height: 1.55; margin: 0; }
+    main { padding: 0; }
+    section { margin: 0; padding-top: 28px; scroll-margin-top: 24px; border-top: 1px solid var(--line); }
+    main > section { margin: 48px 0 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 24px; }
+    .section-heading, .section-body { min-width: 0; }
+    .section-heading .eyebrow { margin-bottom: 10px; }
+    .section-body > :first-child { margin-top: 0; }
+    .section-heading h2 { font-size: clamp(22px, 2.4vw, 30px); line-height: 1.22; }
+    .back-link { margin-bottom: 24px; font-size: 13px; }
+    .back-link a { text-decoration: none; font-weight: 500; }
+    main > section > .eyebrow { margin-bottom: 8px; }
+    main > section > h2 { max-width: 32ch; }
+    section section { border-top: 0; padding-top: 4px; }
+    section section + section { margin-top: 8px; }
+    section section > h3:first-child { margin-top: 20px; }
+    .grid + p, .callout + p, table + p { margin-top: 16px; }
+    .grid > *, .card { min-width: 0; }
+    .card h3 { margin-top: 0; }
+    details { margin: 12px 0; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 0 2px; }
+    details + details { border-top: 0; }
+    details > summary { padding: 12px 0; font-size: .94rem; }
+    details[open] { padding-bottom: 16px; }
+    details[open] > summary { margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+    details > h3:first-of-type { margin-top: 12px; }
+    .takeaway { padding-left: 12px; border-left: 3px solid var(--blue); color: var(--ink); }
+    .reading-hint { font-size: .88rem; color: var(--muted); margin-bottom: 24px; }
+    summary { cursor: pointer; color: var(--blue); font-weight: 600; }
+    .algorithm { margin: 20px auto; max-width: 860px; }
+    .algorithm img { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+    .algorithm figcaption { margin-top: 8px; color: var(--muted); font-size: .85rem; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 16px 0; align-items: start; }
+    #targets > .grid { align-items: stretch; }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card, .formula, .callout {
+      background: var(--card); border: 1px solid var(--line); border-radius: 0; padding: 16px; box-shadow: none;
+    }
+    .card p:last-child, .callout p:last-child { margin-bottom: 0; }
+    .muted { color: var(--muted); }
+    .callout { border: 0; border-left: 3px solid var(--blue); background: transparent; padding: 4px 0 4px 16px; margin: 18px 0; box-shadow: none; }
+    .callout.green { border-left-color: var(--green); }
+    .callout.gold { border-left-color: #e0a100; }
+    .callout.purple { border-left-color: var(--purple); }
+    .formula { text-align: left; margin: 18px 0; padding: 8px 0 8px 18px; border: 0; border-left: 3px solid var(--blue); background: transparent; box-shadow: none; border-radius: 0; font: 400 18px/1.75 'Google Sans', Arial, sans-serif; overflow-wrap: anywhere; }
+    .formula strong { color: var(--blue); }
+    .label { display: inline-block; color: var(--blue); font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    .flow { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 22px 0; }
+    .node { padding: 12px 16px; border-radius: 0; border: 1px solid #bcd0f5; background: var(--blue-soft); text-align: center; font-weight: 700; }
+    .node.target { border-color: #a8e2cb; background: var(--green-soft); }
+    .arrow { color: var(--muted); font-size: 1.4rem; }
+    .timeline { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 22px 0 8px; }
+    .timeline::before { content: ""; position: absolute; left: 8%; right: 8%; top: 20px; border-top: 2px dashed #bfd0e8; z-index: 0; }
+    .step { position: relative; z-index: 1; text-align: center; }
+    .dot { width: 42px; height: 42px; display: grid; place-items: center; margin: auto; border-radius: 50%; background: var(--blue); color: #fff; font-weight: 800; }
+    .step p { margin: 8px 0 0; font-size: .9rem; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 0; box-shadow: none; margin: 16px 0; }
+    th, td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    ul { margin: 10px 0 0; padding-left: 22px; }
+    li + li { margin-top: 6px; }
+    th { background: #f1f5f9; font-size: .9rem; }
+    tr:last-child td { border-bottom: 0; }
+    code { padding: .12em .35em; border-radius: 5px; background: #eef2f7; color: #27364d; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
+    .tab { cursor: pointer; border: 1px solid var(--line); border-radius: 0; padding: 6px 14px; background: #fff; color: var(--ink); font: inherit; }
+    .tab[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    footer { padding: 28px 0 0; color: var(--muted); border-top: 1px solid var(--line); }
+    @media (max-width: 760px) {
+      body { padding: 36px 20px 56px; }
+      header { padding-bottom: 24px; }
+      .grid, .grid.four { grid-template-columns: 1fr; }
+      .timeline { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+      .timeline::before { display: none; }
+      th, td { padding: 12px 10px; font-size: .92rem; }
+      table { display: block; overflow-x: auto; }
+      main > section { grid-template-columns: 1fr; gap: 16px; margin-top: 32px; }
+      .section-heading h2 { margin-bottom: 0; }
+    }
+    @media print {
+      body { max-width: none; padding: 0; font-size: 11pt; }
+      .chapter-nav, .tabs { display: none; }
+      .panel { display: block; margin-bottom: 12px; }
+      h2, h3 { break-after: avoid; }
+      .algorithm, .callout, tr { break-inside: avoid; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <nav class="back-link" aria-label="All chapters"><a href="index.html">&larr; Back to All Chapters</a></nav>
+  <header>
+    <div class="wrap">
+      <div class="eyebrow">Chapter 9</div>
+      <h1>On-policy prediction</h1>
+    </div>
+  </header>
+
+  <nav class="chapter-nav" aria-label="Chapter sections">
+    <a href="#chapter-intro">Introduction</a>
+    <a href="#value-function-approximation">9.1 Approximation</a>
+    <a href="#prediction-objective">9.2 Objective</a>
+    <a href="#gradient-methods">9.3 Gradient methods</a>
+    <a href="#linear-methods">9.4 Linear methods</a>
+    <a href="#feature-construction">9.5 Features</a>
+    <a href="#summary">Summary</a>
+  </nav>
+
+  <main class="wrap">
+    <p class="reading-hint">Start with the core ideas. Open examples, derivations, and algorithms whenever you need more detail.</p>
+    <section id="chapter-intro" style="border-top: 0; padding-top: 0;">
+      <div class="section-heading">
+      <div class="eyebrow">Chapter introduction</div>
+      <h2>Why use function approximation?</h2>
+      </div>
+      <div class="section-body">
+      <p>Imagine a robot following a fixed rule for moving toward an exit. From its current location, how much reward should it expect to collect? That is the <strong>prediction problem</strong>. A state’s value is its expected future reward, with later rewards discounted if γ &lt; 1.</p>
+      <p><strong>On-policy</strong> means we learn about the same policy the robot follows to collect experience. We keep that policy fixed here; our job is to estimate its values.</p>
+      <p>A table stores a separate value for every state. But if position and speed can take any real number, the robot can encounter endlessly many states. We need a way to make predictions without storing every possible state.</p>
+      <div class="flow" aria-label="Function approximation overview">
+        <div class="node">State<br><strong>s</strong></div>
+        <div class="arrow">→</div>
+        <div class="node target">Function approximator<br><strong>v̂(s, w)</strong></div>
+        <div class="arrow">→</div>
+        <div class="node">Predicted value<br><strong>of s</strong></div>
+      </div>
+      <div class="grid">
+        <div class="callout"><strong>A function approximator is a reusable prediction rule.</strong> Give it a state, and it returns a value estimate. The weights <strong>w</strong> are the adjustable numbers that determine its predictions.</div>
+        <div class="callout green"><strong>What it buys us:</strong> the number of parameters can be much smaller than the number of states, so learning remains practical.</div>
+      </div>
+      <details class="study-detail">
+        <summary>Example · predict a value from distance</summary>
+      <h3>A small example: predict from distance</h3>
+      <p>A <strong>feature</strong> is a useful description of a state, such as its distance d from the exit. A simple model could predict <strong>v̂(s, w) = w₀ + w₁d</strong>. If w₀ = 10 and w₁ = −1, it predicts 8 at distance 2 and 7 at distance 3. These are example predictions, not known true values.</p>
+      <p>Learning adjusts the two weights from rewards. Changing them changes predictions at many distances at once. This sharing is called <strong>generalization</strong>: experience at one state can help us predict at another. It can also introduce errors when states that share a prediction rule need different values.</p>
+      <p>A linear model is one choice; neural networks and decision trees are others. Throughout this chapter, <strong>v<sub>π</sub>(s)</strong> means the true expected value under policy π, and <strong>v̂(s, w)</strong> means our estimate. We write <strong>V(s)</strong> as a shorter name for the current estimate below.</p>
+      </details>
+
+          </div>
+    </section>
+
+    <section id="value-function-approximation">
+      <div class="section-heading">
+      <div class="eyebrow">Section 9.1</div>
+      <h2>Value-function approximation</h2>
+      </div>
+      <div class="section-body">
+      <p class="takeaway"><strong>Core idea:</strong> A function approximator shares what it learns across states.</p>
+    <section id="big-picture">
+      <h3>Learn by moving toward a target</h3>
+      <p>In prediction, an agent tries to estimate how good a state is under a fixed policy. We call that estimate <code>V(s)</code>. Every update follows the same basic idea:</p>
+      <div class="flow" aria-label="Prediction update flow">
+        <div class="node">Current estimate<br><strong>V(s)</strong></div>
+        <div class="arrow">→</div>
+        <div class="node target">Build a target<br><strong>target</strong></div>
+        <div class="arrow">→</div>
+        <div class="node">Move estimate<br>toward target</div>
+      </div>
+      <div class="callout"><strong>In simple words:</strong> the target is the answer we currently have for what the state was worth. The prediction moves a small step toward that answer.</div>
+    </section>
+
+      <details class="study-detail">
+        <summary>Reference · MC, TD(0), n-step TD, and DP targets</summary>
+    <section id="targets">
+      <h3>Four ways to build a target</h3>
+      <p class="muted">The learning rule stays almost the same. What changes is how much future information we use to make the target.</p>
+      <p><strong>Notation:</strong> S<sub>t</sub> is the state now; R<sub>t+1</sub> is the next reward. γ is the discount factor, between 0 and 1. <strong>Bootstrapping</strong> means using a current value estimate to fill in rewards we have not observed yet.</p>
+      <div class="grid">
+        <article class="card">
+          <span class="label">Monte Carlo · MC</span>
+          <h3>Wait for the whole episode</h3>
+          <div class="formula"><strong>G<sub>t</sub></strong> = R<sub>t+1</sub> + γR<sub>t+2</sub> + γ²R<sub>t+3</sub> + …</div>
+          <p>Add up the rewards until the episode ends. This return is one sample of the state’s value; different episodes can give different returns. There is no guessed value at the end.</p>
+        </article>
+        <article class="card">
+          <span class="label">TD(0)</span>
+          <h3>Use one step, then guess the rest</h3>
+          <div class="formula"><strong>Y<sub>t</sub></strong> = R<sub>t+1</sub> + γV(S<sub>t+1</sub>)</div>
+          <p>Use the reward we just saw, then add our current guess for the next state. This gives feedback quickly.</p>
+        </article>
+        <article class="card">
+          <span class="label">n-step TD</span>
+          <h3>Look several steps ahead</h3>
+          <div class="formula"><strong>Y<sub>t:t+n</sub></strong> = R<sub>t+1</sub> + γR<sub>t+2</sub> + … + γ<sup>n−1</sup>R<sub>t+n</sub> + γ<sup>n</sup>V(S<sub>t+n</sub>)</div>
+          <p>Use several real rewards before bootstrapping from a prediction. It sits between TD(0) and MC.</p>
+        </article>
+        <article class="card">
+          <span class="label">Dynamic programming · DP</span>
+          <h3>Use a known model</h3>
+          <div class="formula"><strong>Y(s)</strong> = Σ<sub>a</sub> π(a|s) Σ<sub>s′,r</sub> p(s′,r|s,a) [r + γV(s′)]</div>
+          <p>Use a model to average over possible actions, next states, and rewards. π(a|s) gives the chance of choosing action a, and p gives the chance of its outcome. DP still bootstraps from current value estimates.</p>
+        </article>
+      </div>
+      <p>At a terminal state, the remaining value is zero. For n-step TD, if the episode ends before n steps, stop the reward sum there and leave out the final value estimate.</p>
+      <div class="callout"><strong>Same experience, different targets:</strong> suppose the remaining rewards are 2, 0, 6, then the episode ends. Let γ = 1, V(S<sub>t+1</sub>) = 5, and V(S<sub>t+2</sub>) = 4. MC gives 2 + 0 + 6 = <strong>8</strong>; TD(0) gives 2 + 5 = <strong>7</strong>; 2-step TD gives 2 + 0 + 4 = <strong>6</strong>. DP instead needs the probabilities of all possible next outcomes.</div>
+    </section>
+
+      </details>
+
+    <section id="update">
+      <h3>The tabular update: close part of the gap</h3>
+      <div class="formula"><strong>V(s) ← V(s) + α [ target − V(s) ]</strong></div>
+      <div class="grid">
+        <div class="callout green"><strong>Target − prediction</strong> is the error. If the target is higher, the estimate rises. If it is lower, the estimate falls.</div>
+        <div class="callout gold"><strong>α</strong> is the step size. A small α makes gentle, stable changes; a larger α learns faster but can be noisier.</div>
+      </div>
+      <details class="study-detail">
+        <summary>Example · one tabular update</summary>
+      <p>For example, if V(s) = 4, the target is 7, and α = 0.1, the new estimate is <strong>4 + 0.1 × (7 − 4) = 4.3</strong>. We move partway toward the target because one experience need not tell the whole story.</p>
+      </details>
+
+    </section>
+
+    <section id="tabular-vs-fa">
+      <h3>What changes with function approximation?</h3>
+      <details class="study-detail">
+        <summary>Comparison · table entries versus shared weights</summary>
+      <table>
+        <thead><tr><th>Tabular prediction</th><th>Function approximation</th></tr></thead>
+        <tbody>
+          <tr><td>Keep one separate number for every state.</td><td>Use a function <code>V(s; w)</code> that produces a value from features of the state.</td></tr>
+          <tr><td>Update only the visited state.</td><td>Update the function’s parameters <code>w</code>.</td></tr>
+          <tr><td>Learning one state usually does not change another.</td><td>Learning one state can change predictions for many similar states.</td></tr>
+          <tr><td>Works well when the state set is small.</td><td>Helps when there are too many states to store—or states are continuous.</td></tr>
+        </tbody>
+      </table>
+      </details>
+
+      <div class="formula"><strong>w ← w + α [ target − V(s; w) ] ∇<sub>w</sub>V(s; w)</strong></div>
+      <p>Now we change weights instead of a table entry. The error tells us whether the prediction should rise or fall. The gradient ∇<sub>w</sub>V tells us how each weight affects that prediction.</p>
+    </section>
+
+      <details class="study-detail">
+        <summary>Explore · generalization, training examples, and online learning</summary>
+    <section id="generalization">
+      <h3>Generalization: learning spreads to similar states</h3>
+      <p>Imagine a robot learning the value of locations in a large maze. Instead of memorizing every square, it uses features such as “near the goal,” “has a wall on the left,” and “distance to the exit.”</p>
+      <div class="flow">
+        <div class="node">Experience:<br>near-goal state → reward 10</div>
+        <div class="arrow">→</div>
+        <div class="node target">Update shared weights</div>
+        <div class="arrow">→</div>
+        <div class="node">Similar near-goal states<br>also get better estimates</div>
+      </div>
+      <div class="callout purple"><strong>Why this matters:</strong> one experience can teach the agent something useful about states it has never visited. The trade-off is that a bad update can also affect several states.</div>
+    </section>
+
+    <section id="supervised">
+      <h3>Every RL update becomes a supervised example</h3>
+      <p>For a single time step, reinforcement learning can look surprisingly familiar:</p>
+      <div class="timeline" aria-label="From experience to supervised update">
+        <div class="step"><div class="dot">1</div><p>Observe state <code>S<sub>t</sub></code></p></div>
+        <div class="step"><div class="dot">2</div><p>Build target <code>Y<sub>t</sub></code></p></div>
+        <div class="step"><div class="dot">3</div><p>Compare <code>Y<sub>t</sub></code> with <code>V(S<sub>t</sub>)</code></p></div>
+        <div class="step"><div class="dot">4</div><p>Reduce the error</p></div>
+      </div>
+      <div class="grid">
+        <div class="card"><h3>Input</h3><p>The state features, such as position, speed, or pixels.</p></div>
+        <div class="card"><h3>Label</h3><p>The RL target: a return, a one-step bootstrapped value, an n-step return, or a model-based target.</p></div>
+      </div>
+      <div class="callout"><strong>Key idea:</strong> RL supplies its own labels from rewards and predictions. The label is not usually given by a teacher—it is constructed from interaction.</div>
+    </section>
+
+    <section id="online">
+      <h3>Why online learning matters</h3>
+      <div class="tabs" role="tablist" aria-label="Online learning comparison">
+        <button class="tab" role="tab" aria-selected="true" data-panel="online-panel">Online</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="batch-panel">Batch</button>
+      </div>
+      <div id="online-panel" class="panel active" role="tabpanel">
+        <div class="card"><h3>Learn as experience arrives</h3><p>The robot can update its model during interaction, without saving every past observation. TD(0) can learn after one transition; n-step TD waits for several rewards; MC waits until the return is available. This makes incremental learning useful when experience keeps arriving and memory is limited.</p></div>
+      </div>
+      <div id="batch-panel" class="panel" role="tabpanel">
+        <div class="card"><h3>Learn after collecting data</h3><p>Batch learning waits for a collection of examples and then trains on them together. It can be efficient, but it reacts more slowly to new information.</p></div>
+      </div>
+      <div class="callout green"><strong>Online does not mean careless:</strong> a sensible step size, useful features, and stable targets help the estimate improve without changing too wildly.</div>
+    </section>
+      </details>
+
+          </div>
+    </section>
+
+    <section id="prediction-objective">
+      <div class="section-heading">
+      <div class="eyebrow">Section 9.2</div>
+      <h2>The prediction objective: what counts as a good estimate?</h2>
+      </div>
+      <div class="section-body">
+      <p class="takeaway"><strong>Core idea:</strong> Measure prediction quality using squared true-value errors, weighted by state importance.</p>
+      <p>Suppose our robot uses a model too simple to fit every state exactly. Adjusting its weights may improve some states and worsen others. We need a score that compares the <strong>overall quality</strong> of two sets of weights.</p>
+      <div class="formula"><strong>V̄E(w)</strong> = Σ<sub>s</sub> μ(s) [ v<sub>π</sub>(s) − v̂(s, w) ]²</div>
+      <p>Read this from the inside out: find the prediction error in each state, square it, multiply by the state’s weight μ(s), then add the results. Squaring keeps positive and negative errors from cancelling. <strong>Lower V̄E means better predictions according to this score.</strong></p>
+      <div class="grid">
+        <div class="callout"><strong>v<sub>π</sub>(s)</strong> is the true value under policy π. <strong>v̂(s, w)</strong> is the value our function currently predicts.</div>
+        <div class="callout gold"><strong>μ(s)</strong> says how important state s is. A state visited often can receive more weight than a state we almost never see.</div>
+      </div>
+
+      <details class="study-detail">
+        <summary>Example · calculate weighted prediction error</summary>
+      <h3>A worked example</h3>
+      <p>Suppose state A accounts for 80% of visits and B for 20%. The true values and current predictions are:</p>
+      <table>
+        <thead><tr><th>State</th><th>μ(s)</th><th>True value</th><th>Prediction</th><th>Squared error</th><th>Weighted error</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>0.8</td><td>10</td><td>8</td><td>(10 − 8)² = 4</td><td>0.8 × 4 = 3.2</td></tr>
+          <tr><td>B</td><td>0.2</td><td>4</td><td>6</td><td>(4 − 6)² = 4</td><td>0.2 × 4 = 0.8</td></tr>
+        </tbody>
+      </table>
+      <p>The total is <strong>V̄E = 3.2 + 0.8 = 4</strong>. Both predictions are wrong by 2, but A contributes more because it is visited more often. If a shared-weight change reduces A’s squared error from 4 to 1 while increasing B’s from 4 to 9, the score becomes <strong>0.8 × 1 + 0.2 × 9 = 2.6</strong>. Overall error falls even though B gets worse.</p>
+
+      </details>
+
+      <details class="study-detail">
+        <summary>Deeper detail · where the state weights come from</summary>
+      <h3>What is the on-policy distribution?</h3>
+      <p>The weights satisfy <strong>μ(s) ≥ 0</strong> and <strong>Σ<sub>s</sub> μ(s) = 1</strong>. A common choice is the fraction of time the agent spends in each state while following π: the <strong>on-policy distribution</strong>. Frequently visited states then count more in the score.</p>
+      <p>For a continuing task, we use the long-run state frequencies when a suitable stationary distribution exists. For an episodic task, count expected visits to each nonterminal state over an episode and normalize:</p>
+      <div class="formula"><strong>μ(s)</strong> = η(s) / Σ<sub>s′</sub> η(s′)</div>
+      <p>Here, <strong>η(s)</strong> is the expected number of visits to state s per episode. If the average counts are 4 visits to A and 1 to B, their weights are 4/5 and 1/5—the 0.8 and 0.2 above.</p>
+      <details>
+        <summary>Where do the expected visit counts come from?</summary>
+        <div class="formula"><strong>η(s)</strong> = h(s) + Σ<sub>s̄</sub> η(s̄) Σ<sub>a</sub> π(a|s̄) p(s|s̄,a)</div>
+        <p>A visit happens either because an episode starts in s, with probability <strong>h(s)</strong>, or because the agent arrives from another nonterminal state s̄. The second term adds up those arrivals under π. This assumes episodes have finite expected visit counts; discounted visitation uses an additional γ factor on arrivals.</p>
+      </details>
+
+      </details>
+
+      <div class="callout purple"><strong>Simple interpretation:</strong> the objective is a weighted average of squared prediction errors. The function approximator should be as accurate as possible on the states that matter for the task.</div>
+
+      <details class="study-detail">
+        <summary>Deeper detail · the objective versus the training loss</summary>
+      <h3>What are we trying to minimize?</h3>
+      <p>Ideally, we find weights with the smallest possible V̄E: a <strong>global minimum</strong>. A more complex model may reach a <strong>local minimum</strong>, where nearby weight changes do not improve the score even though a better solution exists elsewhere.</p>
+      <div class="callout gold"><strong>Why use the true value if we do not know it?</strong> V̄E defines our goal: predictions close to the true values. We usually cannot compute it directly, so training uses the available target U and the loss ½[U − v̂(s, w)]². MC returns are unbiased samples of the true value, so minimizing their expected squared loss also minimizes true prediction error. TD targets use current estimates, so fitting them does not generally minimize V̄E directly.</div>
+      <p>Weighted squared error is a useful prediction objective. But a lower prediction error alone does not guarantee a better policy: errors that change an action choice can matter differently from other errors. For now, we evaluate predictions under the fixed policy π.</p>
+      </details>
+
+          </div>
+    </section>
+
+    <section id="gradient-methods">
+      <div class="section-heading">
+      <div class="eyebrow">Section 9.3</div>
+      <h2>Stochastic-gradient and semi-gradient methods</h2>
+      </div>
+      <div class="section-body">
+      <p class="takeaway"><strong>Core idea:</strong> Adjust weights using target error × prediction gradient; TD holds its bootstrapped target fixed.</p>
+      <p>Section 9.2 defined the goal: make predictions close to the true values. Now we need a practical way to adjust the weights using the experience we collect.</p>
+
+      <details class="study-detail">
+        <summary>Foundation · imagine the true values were available</summary>
+      <h3>9.3.1 Stochastic gradient: learn from one example</h3>
+      <p>Assume our value function is differentiable: we can calculate how changing each weight changes its prediction. If the true value were available, one update would be:</p>
+      <div class="formula">w<sub>t+1</sub> = w<sub>t</sub> + α [v<sub>π</sub>(S<sub>t</sub>) − v̂(S<sub>t</sub>, w<sub>t</sub>)] ∇<sub>w</sub>v̂(S<sub>t</sub>, w<sub>t</sub>)</div>
+      <p>This is the squared-error update derived below. The subscript t means “before this update”; t+1 means “after it.” <strong>Stochastic</strong> means we learn from a sampled example rather than calculating an average over every state.</p>
+      <div class="callout"><strong>Why can one example help the overall objective?</strong> If sampled states follow μ, averaging these true-value updates gives a descent direction for ½V̄E. An individual update can still increase the overall error; the connection is about the average direction.</div>
+
+      </details>
+
+      <h3>9.3.2 Replace the unknown true value with U<sub>t</sub></h3>
+      <p>We rarely know v<sub>π</sub>(S<sub>t</sub>). Use an available target U<sub>t</sub> in its place:</p>
+      <div class="formula"><strong>w<sub>t+1</sub> = w<sub>t</sub> + α [U<sub>t</sub> − v̂(S<sub>t</sub>, w<sub>t</sub>)] ∇<sub>w</sub>v̂(S<sub>t</sub>, w<sub>t</sub>)</strong></div>
+      <p>The choice of U<sub>t</sub> determines which learning method we get: <strong>MC uses the observed return; TD uses the next reward plus a next-state prediction.</strong> MC takes a gradient step on its return loss. TD holds its target fixed, giving a semi-gradient step.</p>
+
+      <details class="study-detail" id="weight-update-derivation">
+        <summary>Derivation · where the weight update comes from</summary>
+      <h3>Where does the weight update come from?</h3>
+      <p>It comes from <strong>gradient descent on squared prediction error</strong>. Ideally, we would train on the true value v<sub>π</sub>(s). But that value is usually unknown—it is what we are trying to learn. Instead, we use <strong>U, a target that estimates the unknown true value for this learning example</strong>.</p>
+      <div class="callout"><strong>What is U?</strong> It is a placeholder for the target supplied by the prediction method:
+        <ul>
+          <li><strong>MC:</strong> U = G<sub>t</sub>, the return observed from this state until the episode ends.</li>
+          <li><strong>TD(0):</strong> U = R<sub>t+1</sub> + γv̂(S<sub>t+1</sub>, w), the next reward plus the estimated value of the next state.</li>
+        </ul>
+        <p>U is generally <strong>not the true value v<sub>π</sub>(s)</strong>. An MC return is a noisy sample whose expectation under π is the true value; a TD target can also be biased by errors in the next-state estimate.</p>
+      </div>
+      <p>With U as the target and v̂(s, w) as the prediction, the loss for this example is:</p>
+      <div class="formula">L(w) = ½ [ U − v̂(s, w) ]²</div>
+      <p>The factor ½ just simplifies the derivative. Gradient descent takes a small step opposite the loss gradient, toward lower error:</p>
+      <div class="formula">w ← w − α ∇<sub>w</sub>L(w)</div>
+      <p>Hold U fixed while differentiating. By the chain rule, the square contributes twice the error, and differentiating −v̂ contributes a minus sign:</p>
+      <div class="formula">∇<sub>w</sub>L(w) = −[ U − v̂(s, w) ] ∇<sub>w</sub>v̂(s, w)</div>
+      <p>Substitute this derivative into gradient descent. The two minus signs cancel, giving the weight update:</p>
+      <div class="formula"><strong>w ← w + α [ U − v̂(s, w) ] ∇<sub>w</sub>v̂(s, w)</strong></div>
+      <p><strong>A one-weight example:</strong> let v̂(s, w) = wx, where x is a feature. Its derivative with respect to w is x, so the update becomes w ← w + α(U − wx)x. If x = 2, w = 1, U = 4, and α = 0.1, the prediction starts at 2. The new weight is 1 + 0.1 × (4 − 2) × 2 = <strong>1.4</strong>, making the new prediction <strong>2.8</strong>—closer to 4.</p>
+      <div class="callout gold"><strong>Why “semi-gradient”?</strong> An MC return does not depend on the prediction weights, so this is an ordinary gradient update. A TD target includes a value prediction that also depends on w. Holding that target fixed ignores part of its dependence on w, so we call the update a <strong>semi-gradient</strong>. The TD explanation below develops this distinction further.</div>
+      </details>
+
+      <details class="study-detail">
+        <summary>Monte Carlo · explanation, worked example, and algorithm</summary>
+      <h3>Monte Carlo: a gradient method</h3>
+      <div class="formula">U<sub>t</sub> = G<sub>t</sub></div>
+      <figure class="algorithm">
+        <a href="assets/chapter_9/gradient_mc.png" target="_blank" rel="noopener"><img src="assets/chapter_9/gradient_mc.png" alt="Gradient Monte Carlo algorithm: initialize weights, generate an episode with policy π, then update each visited state using its return G_t minus its predicted value, multiplied by the value gradient." loading="lazy" width="1258" height="460"></a>
+        <figcaption>Gradient Monte Carlo — Sutton &amp; Barto, reproduced in the <a href="https://lcalem.github.io/blog/2018/12/22/sutton-chap09">reference blog</a>. Click the screenshot to enlarge.</figcaption>
+      </figure>
+      <p>Finish the episode, calculate its returns, and use each visited state with its return as a training example. The return does not depend on the prediction weights. Its noise comes from the sampled trajectory.</p>
+      <div class="callout green"><strong>Example:</strong> with γ = 1, rewards 2, 0, 6 give a return of 8. A prediction of 5 has target error 8 − 5 = 3. The update uses that error to raise the prediction. Another episode may produce a different return; repeated samples reveal the expected value.</div>
+
+      </details>
+
+      <details class="study-detail">
+        <summary>Semi-gradient TD · explanation, worked example, and algorithm</summary>
+      <h3>Bootstrapping: a semi-gradient method</h3>
+      <p>TD(0) builds its target immediately after a transition:</p>
+      <div class="formula">U<sub>t</sub> = R<sub>t+1</sub> + γv̂(S<sub>t+1</sub>, w<sub>t</sub>)</div>
+      <div class="formula">δ<sub>t</sub> = U<sub>t</sub> − v̂(S<sub>t</sub>, w<sub>t</sub>)<br><strong>w<sub>t+1</sub> = w<sub>t</sub> + αδ<sub>t</sub> ∇<sub>w</sub>v̂(S<sub>t</sub>, w<sub>t</sub>)</strong></div>
+      <p>δ<sub>t</sub> is the <strong>TD error</strong>. At a terminal next state, set its value to zero.</p>
+      <figure class="algorithm">
+        <a href="assets/chapter_9/semi_gradient_td.png" target="_blank" rel="noopener"><img src="assets/chapter_9/semi_gradient_td.png" alt="Semi-gradient TD(0) algorithm: initialize weights, follow policy π, observe reward R and next state S′, update weights using the TD error times the current-state value gradient, and continue until termination. Terminal-state value is zero." loading="lazy" width="1252" height="616"></a>
+        <figcaption>Semi-gradient TD(0) — Sutton &amp; Barto, reproduced in the <a href="https://lcalem.github.io/blog/2018/12/22/sutton-chap09">reference blog</a>. Click the screenshot to enlarge.</figcaption>
+      </figure>
+      <div class="callout gold"><strong>Why only “semi”?</strong> The same weights appear in both the current prediction and the next-state prediction inside U<sub>t</sub>. We calculate U<sub>t</sub>, then hold it fixed while differentiating the current prediction. The update leaves out the derivative through the target.</div>
+      <details>
+        <summary>See the missing derivative</summary>
+        <p>For one fixed transition, differentiating the entire squared TD error would give:</p>
+        <div class="formula">∇<sub>w</sub>(½δ²) = δ [γ∇<sub>w</sub>v̂(S<sub>t+1</sub>, w) − ∇<sub>w</sub>v̂(S<sub>t</sub>, w)]</div>
+        <p>Semi-gradient TD omits the next-state derivative term. This full derivative describes a different update; it is not the gradient of the true-value objective V̄E either.</p>
+      </details>
+      <p><strong>One transition:</strong> reward = 2, γ = 0.9, next-state prediction = 5, current prediction = 4. Then U<sub>t</sub> = 2 + 0.9 × 5 = <strong>6.5</strong>, and δ<sub>t</sub> = <strong>2.5</strong>. If the current prediction is wx with x = 2 and w = 2, its gradient is 2. With α = 0.1, the new weight is 2 + 0.1 × 2.5 × 2 = <strong>2.5</strong>.</p>
+      <p>n-step TD and model-based bootstrapped targets use the same idea when we hold their targets fixed during differentiation.</p>
+
+      <table aria-label="Gradient MC and semi-gradient TD comparison">
+        <thead><tr><th>Question</th><th>Gradient MC</th><th>Semi-gradient TD(0)</th></tr></thead>
+        <tbody>
+          <tr><td>When can it update?</td><td>Once the episode return is available</td><td>After one transition</td></tr>
+          <tr><td>Does the target use current estimates?</td><td>No</td><td>Yes, unless the next state is terminal</td></tr>
+          <tr><td>Connection to V̄E</td><td>Expected updates follow its negative gradient under matching state sampling</td><td>Does not generally minimize V̄E directly</td></tr>
+        </tbody>
+      </table>
+      <p>Learning-rate and model assumptions matter for convergence. Semi-gradient TD has useful guarantees for on-policy linear approximation, which Section 9.4 explores; arbitrary nonlinear models do not inherit those guarantees automatically.</p>
+
+      </details>
+
+      <details class="study-detail">
+        <summary>Example · state aggregation</summary>
+      <h3>State aggregation: a simple shared model</h3>
+      <p>Group states into buckets and give each bucket one weight. If states A and B are in bucket 1, both predict <strong>v̂(s, w) = w₁</strong>. The gradient is 1 for that bucket’s weight and 0 for every other weight:</p>
+      <div class="formula">w₁ ← w₁ + α(U − w₁)</div>
+      <p>If w₁ = 4, U = 8, and α = 0.25, the new weight is <strong>5</strong>. Both A and B now predict 5, even if only A supplied the example. Other buckets stay unchanged. This makes generalization easy to see, but states within a bucket cannot have different predictions.</p>
+      <p class="muted">Reading sequence: <a href="https://lcalem.github.io/blog/2018/12/22/sutton-chap09#93-stochastic-gradient-and-semi-gradient-methods">Chapter 9 reference blog, Section 9.3</a>. Examples and derivations here are explained in our own notation.</p>
+      </details>
+
+          </div>
+    </section>
+
+    <section id="linear-methods">
+      <div class="section-heading">
+      <div class="eyebrow">Section 9.4</div>
+      <h2>Linear methods</h2>
+      </div>
+      <div class="section-body">
+      <p>We have a general weight update. Now choose a particularly simple prediction rule: describe each state with numbers called <strong>features</strong>, multiply each feature by a weight, and add the results.</p>
+      <div class="formula"><strong>v̂(s, w) = wᵀx(s) = Σ<sub>i=1…d</sub> w<sub>i</sub>x<sub>i</sub>(s)</strong></div>
+      <p><strong>x(s)</strong> is the feature vector, <strong>w</strong> is a vector of the same length, and wᵀx is their dot product. Features describe the state; weights are learned. The features stay fixed while we learn these weights.</p>
+
+      <details class="study-detail">
+        <summary>Example · calculate a linear prediction</summary>
+      <h3>A prediction you can calculate by hand</h3>
+      <p>For the robot, use two features: a constant 1 and distance to the exit. At distance 2, let x(s) = [1, 2]ᵀ and w = [10, −1]ᵀ:</p>
+      <div class="formula">v̂(s, w) = 10 × 1 + (−1) × 2 = <strong>8</strong></div>
+      <p>The constant feature lets the first weight set a baseline. The second weight controls how distance changes the prediction.</p>
+      <div class="callout"><strong>“Linear” means linear in the weights.</strong> Features can contain d², sin(d), or a yes/no indicator. For example, w₁ + w₂d + w₃d² is still linear in its learned weights, even though it draws a curve as distance changes.</div>
+
+      </details>
+
+      <h3>Why the update becomes simpler</h3>
+      <p>In the sum w₁x₁ + w₂x₂ + …, differentiating with respect to wᵢ leaves xᵢ. So the whole gradient is just the feature vector:</p>
+      <div class="formula">∇<sub>w</sub>v̂(s, w) = x(s)<br><strong>w ← w + α [U − wᵀx(s)] x(s)</strong></div>
+      <details class="study-detail">
+        <summary>Example and properties · updating shared linear weights</summary>
+      <p><strong>One update:</strong> continue with x = [1, 2]ᵀ, w = [10, −1]ᵀ, target U = 9, and α = 0.1. The error is 9 − 8 = 1. Add 0.1 × 1 × [1, 2]ᵀ to the weights, giving <strong>[10.1, −0.8]ᵀ</strong>. The prediction becomes 10.1 − 0.8 × 2 = <strong>8.5</strong>, closer to 9.</p>
+      <p>The change also affects other distances. At distance 3, the prediction changes from 7 to 7.7. This is generalization through shared features; whether it helps depends on the true values there.</p>
+      <div class="callout green"><strong>A useful property:</strong> with fixed linear features, V̄E is a convex quadratic in w. A local minimum is therefore global. Several weight vectors can tie if features are redundant; the best weights need not be unique.</div>
+
+      </details>
+
+      <details class="study-detail">
+        <summary>Deeper detail · convergence, the TD fixed point, and error bound</summary>
+      <h3>9.4.1 Semi-gradient convergence</h3>
+      <p>For TD(0), write x<sub>t</sub> = x(S<sub>t</sub>). Substituting the one-step target gives:</p>
+      <div class="formula">δ<sub>t</sub> = R<sub>t+1</sub> + γw<sub>t</sub>ᵀx<sub>t+1</sub> − w<sub>t</sub>ᵀx<sub>t</sub><br><strong>w<sub>t+1</sub> = w<sub>t</sub> + αδ<sub>t</sub>x<sub>t</sub></strong></div>
+      <p>With on-policy sampling, suitable independent features, finite moments, and standard diminishing step sizes, linear TD(0) converges under the usual task assumptions. Its destination is the <strong>TD fixed point</strong>, which generally differs from the weights minimizing V̄E. A small constant step size usually keeps learning near the solution rather than giving exact convergence.</p>
+      <details>
+        <summary>Where is the TD fixed point?</summary>
+        <p>For the continuing task in steady state, collect the expected update into two quantities:</p>
+        <div class="formula">b = E[R<sub>t+1</sub>x<sub>t</sub>]<br>A = E[x<sub>t</sub>(x<sub>t</sub> − γx<sub>t+1</sub>)ᵀ]<br>E[Δw | w] = α(b − Aw)</div>
+        <p>At equilibrium, the average change is zero. Thus <strong>Aw<sub>TD</sub> = b</strong>, or w<sub>TD</sub> = A⁻¹b when A is invertible. The individual noisy updates need not be zero.</p>
+      </details>
+
+      <h3>How far from the best prediction error?</h3>
+      <p>For the discounted continuing on-policy setting covered by the linear TD result, with 0 ≤ γ &lt; 1 and the corresponding stationary state weighting:</p>
+      <div class="formula">V̄E(w<sub>TD</sub>) ≤ [1 / (1 − γ)] min<sub>w</sub> V̄E(w)</div>
+      <p>If γ = 0.9, the factor is 10. For example, a best achievable error of 0.2 gives an upper bound of 2. This is a worst-case guarantee, not a prediction of the actual error. The bound becomes loose when γ is close to 1 and does not apply unchanged at γ = 1.</p>
+
+      </details>
+
+      <details class="study-detail">
+        <summary>Extension · n-step TD and algorithm screenshot</summary>
+      <h3>Using several steps: n-step semi-gradient TD</h3>
+      <p>Collect n rewards before filling in the remaining future with a prediction. At the time of updating S<sub>t</sub>, use the current weights w to form:</p>
+      <div class="formula">G<sub>t:t+n</sub> = Σ<sub>k=1…n</sub> γ<sup>k−1</sup>R<sub>t+k</sub> + γⁿv̂(S<sub>t+n</sub>, w)<br><strong>w ← w + α[G<sub>t:t+n</sub> − wᵀx(S<sub>t</sub>)]x(S<sub>t</sub>)</strong></div>
+      <p>This return assumes n steps remain before termination. If the episode ends sooner, sum only the available rewards and omit the bootstrap term. With n = 1 we recover TD(0); if the return reaches termination, the target is the full MC return.</p>
+      <figure class="algorithm">
+        <a href="assets/chapter_9/nstep_semigradient.png" target="_blank" rel="noopener"><img src="assets/chapter_9/nstep_semigradient.png" alt="n-step semi-gradient TD algorithm: store transitions, update the state n steps behind using a truncated reward sum and a bootstrap value if nonterminal, then finish pending updates after episode termination." loading="lazy" width="1254" height="872"></a>
+        <figcaption>n-step semi-gradient TD — Sutton &amp; Barto, reproduced in the <a href="https://lcalem.github.io/blog/2018/12/22/sutton-chap09">reference blog</a>. Click to enlarge. The screenshot handles any differentiable value function; for linear methods its gradient is x(s).</figcaption>
+      </figure>
+      <p><strong>Reading the loop:</strong> t tracks interaction time; τ = t − n + 1 identifies the earlier state being updated. After termination, the algorithm finishes updates for the last few states, even though it takes no more actions.</p>
+      </details>
+
+      <div class="callout purple"><strong>Takeaway:</strong> choose features, predict with a weighted sum, and update weights using error × features. The feature choices determine which states share learning. Section 9.5 explores how to build them.</div>
+          </div>
+    </section>
+
+    <section id="feature-construction">
+      <div class="section-heading">
+        <div class="eyebrow">Section 9.5</div>
+        <h2>Feature construction for linear methods</h2>
+      </div>
+      <div class="section-body">
+        <p class="takeaway"><strong>Core idea:</strong> features are the clues we give the value function. They decide what it can notice and which states learn from one another.</p>
+        <p>The prediction rule stays v̂(s, w) = wᵀx(s). Here we choose x(s); learning then adjusts the weights w. Open a method below for its explanation and figure.</p>
+
+        <details class="study-detail" id="polynomial-features">
+          <summary>9.5.1 Polynomials</summary>
+          <p>A straight-line prediction may miss useful patterns. Add powers such as distance² to describe curves, or products of features to describe interactions:</p>
+          <div class="formula">x(s) = [1, s₁, s₂, s₁s₂]ᵀ</div>
+          <p><strong>Example:</strong> if s₁ is position and s₂ is speed, the product s₁s₂ lets the effect of speed depend on position. At position 2 and speed 3, x(s) = [1, 2, 3, 6]ᵀ.</p>
+          <p>The first feature, 1, supplies a baseline. These transformed inputs can describe a curved relationship while the prediction remains linear in its learned weights.</p>
+        </details>
+
+        <details class="study-detail" id="coarse-coding">
+          <summary>9.5.2 Coarse coding</summary>
+          <p>Imagine laying overlapping circles over a map. Each circle is a feature: <strong>1 if the state is inside it, 0 otherwise</strong>. The prediction adds the weights of the circles that contain the state.</p>
+          <figure class="algorithm">
+            <a href="assets/chapter_9/coarsecoding.png" target="_blank" rel="noopener"><img src="assets/chapter_9/coarsecoding.png" alt="Overlapping circular features around states s and s′; shaded circles contain s and determine where its update generalizes." loading="lazy" width="592" height="502"></a>
+            <figcaption>Coarse coding. Figure from the <a href="https://lcalem.github.io/blog/2018/12/22/sutton-chap09#952-coarse-coding">reference blog</a>. Click to enlarge.</figcaption>
+          </figure>
+          <p><strong>Read the figure:</strong> learning at s updates the circles containing s. State s′ shares some of those circles, so its prediction changes too. Bigger circles spread learning farther; smaller ones distinguish nearby states more precisely.</p>
+        </details>
+
+        <details class="study-detail" id="tile-coding">
+          <summary>9.5.3 Tile coding</summary>
+          <p>Tile coding uses several slightly shifted grids. Each grid is a <strong>tiling</strong>, and each cell is a <strong>tile</strong>. A state activates one tile in each tiling.</p>
+          <figure class="algorithm">
+            <a href="assets/chapter_9/tile_coding.png" target="_blank" rel="noopener"><img src="assets/chapter_9/tile_coding.png" alt="Four offset tilings cover a continuous two-dimensional state space; one tile from each tiling is active at the marked state." loading="lazy" width="1206" height="436"></a>
+            <figcaption>Tile coding. Figure from the <a href="https://lcalem.github.io/blog/2018/12/22/sutton-chap09#953-tile-coding">reference blog</a>. Click to enlarge.</figcaption>
+          </figure>
+          <p><strong>Read the figure:</strong> four tilings give four active tiles for the marked point. Add their weights to predict its value. Nearby points can share tiles, even when one grid places them on opposite sides of a boundary.</p>
+          <div class="formula">v̂(s, w) = sum of the active tile weights</div>
+          <p>Learning changes only the active weights. This keeps each update small and local, even when the full feature vector is large.</p>
+        </details>
+
+        <details class="study-detail" id="radial-basis-functions">
+          <summary>9.5.4 Radial basis functions (RBF)</summary>
+          <p>Instead of switching a feature on or off, let it fade gradually with distance. A Gaussian RBF is strongest at its center cᵢ and gets weaker farther away:</p>
+          <div class="formula">xᵢ(s) = exp(−‖s − cᵢ‖² / (2σᵢ²))</div>
+          <figure class="algorithm">
+            <a href="assets/chapter_9/rbf.png" target="_blank" rel="noopener"><img src="assets/chapter_9/rbf.png" alt="Three overlapping Gaussian radial basis functions with neighboring centers and a marked width sigma_i." loading="lazy" width="832" height="234"></a>
+            <figcaption>Gaussian RBF features. Figure from the <a href="https://lcalem.github.io/blog/2018/12/22/sutton-chap09#954-radial-basis-function-rbf">reference blog</a>. Click to enlarge.</figcaption>
+          </figure>
+          <p><strong>Read the figure:</strong> each bell curve is one feature. Its center sets where it responds most; σᵢ sets how wide its response is. For center 3 and width 1, the activation is 1 at position 3, about 0.61 at position 4, and 0.14 at position 5.</p>
+          <p>Fixed centers and widths give a linear model in the output weights. Learning centers or widths makes the model nonlinear in those parameters, adding flexibility and computational cost.</p>
+        </details>
+
+        <p class="muted">Further reading: <a href="https://lcalem.github.io/blog/2018/12/22/sutton-chap09#95-feature-construction-for-linear-methods">lcalem’s Section 9.5</a>. Explanations and examples above are written for these notes; screenshots are credited alongside each figure.</p>
+      </div>
+    </section>
+
+    <section id="summary">
+      <div class="section-heading">
+      <h2>Short summary</h2>
+      </div>
+      <div class="section-body">
+      <div class="card">
+        <ul>
+          <li>Prediction estimates <code>V(s)</code> under a fixed policy.</li>
+          <li>MC waits for the full return; TD(0) bootstraps after one step; n-step TD mixes both ideas; DP uses a model.</li>
+          <li>With function approximation, we update parameters instead of one table entry.</li>
+          <li>Shared parameters create generalization: similar states can learn from one another.</li>
+          <li>Each update is a supervised-learning example whose target is built from rewards and predictions.</li>
+          <li>Online learning lets the agent improve directly from fresh experience.</li>
+          <li>The prediction objective V̄E weights squared errors by how important or frequently visited each state is.</li>
+          <li>Gradient MC uses observed returns; semi-gradient TD treats its bootstrapped target as fixed when updating weights.</li>
+          <li>Linear models predict wᵀx(s), so their gradient is x(s). Linear TD converges to a TD fixed point under suitable on-policy conditions.</li>
+          <li>Feature construction determines what linear models can represent: polynomials, overlapping regions, offset tilings, or smooth radial responses.</li>
+        </ul>
+      </div>
+          </div>
+    </section>
+  </main>
+
+  <footer><div class="wrap">Chapter 9 study note · On-policy prediction with function approximation</div></footer>
+
+  <script>
+    function revealAnchor() {
+      if (!location.hash) return;
+      let target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+      if (!target) return;
+      for (let node = target; node; node = node.parentElement) {
+        if (node.tagName === 'DETAILS') node.open = true;
+      }
+      target.scrollIntoView();
+    }
+    window.addEventListener('hashchange', revealAnchor);
+    revealAnchor();
+    window.addEventListener('beforeprint', function () {
+      document.querySelectorAll('details').forEach(function (detail) {
+        detail.dataset.wasOpen = detail.open ? 'true' : 'false';
+        detail.open = true;
+      });
+    });
+    window.addEventListener('afterprint', function () {
+      document.querySelectorAll('details').forEach(function (detail) {
+        detail.open = detail.dataset.wasOpen === 'true';
+      });
+    });
+    document.querySelectorAll('.tab').forEach(function (button) {
+      button.addEventListener('click', function () {
+        document.querySelectorAll('.tab').forEach(function (tab) { tab.setAttribute('aria-selected', 'false'); });
+        document.querySelectorAll('.panel').forEach(function (panel) { panel.classList.remove('active'); });
+        button.setAttribute('aria-selected', 'true');
+        document.getElementById(button.dataset.panel).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
