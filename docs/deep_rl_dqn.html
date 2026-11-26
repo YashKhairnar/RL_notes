@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Q-Networks (DQN) — Reinforcement Learning Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0f172a;--text:#334155;--muted:#64748b;--line:#cbd5e1;--soft:#f8fafc;--blue:#1d4ed8;--blue-soft:#eff6ff;--green:#047857;--green-soft:#ecfdf5;--amber:#b45309;--amber-soft:#fffbeb}
+*{box-sizing:border-box}body{margin:0;padding:48px clamp(20px,7vw,100px) 80px;max-width:1280px;color:var(--ink);background:#fff;font:16px/1.7 'Google Sans',Arial,sans-serif}nav{margin-bottom:42px;font-size:13px}nav a{color:var(--blue);text-decoration:none;font-weight:600}.eyebrow{color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}h1{max-width:850px;margin:8px 0 18px;font-size:clamp(38px,6vw,70px);line-height:1.05;letter-spacing:-.045em}.lead{max-width:780px;margin:0;color:var(--text);font-size:20px;line-height:1.55}main{margin-top:72px}.section{display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,2.3fr);gap:34px;margin-top:52px;padding-top:30px;border-top:1px solid var(--line)}h2{margin:0;font-size:clamp(25px,3vw,36px);line-height:1.2;letter-spacing:-.03em}h3{margin:30px 0 10px;font-size:19px;line-height:1.3}p{margin:0 0 18px;color:var(--text)}strong{color:var(--ink)}.formula{margin:22px 0;padding:16px 18px;overflow-wrap:anywhere;border-left:3px solid var(--blue);background:var(--soft);color:var(--ink);font:20px/1.55 Georgia,'Times New Roman',serif;text-align:center}.formula mjx-container{margin:.15em 0!important;max-width:100%;overflow-x:auto;overflow-y:hidden}.formula mjx-container[display=true]{margin:0!important}.diagram{margin:24px 0 28px;text-align:center}.diagram img{display:block;width:100%;max-width:780px;height:auto;margin:0 auto 10px;border:1px solid var(--line)}.diagram figcaption{color:var(--muted);font-size:14px;line-height:1.5}.intuition{margin:24px 0;padding:18px 20px;border:1px solid #bfdbfe;border-radius:8px;background:var(--blue-soft)}.intuition p:last-child{margin-bottom:0}.warning{margin:24px 0;padding:18px 20px;border:1px solid #fcd34d;border-radius:8px;background:var(--amber-soft)}.success{margin:24px 0;padding:18px 20px;border:1px solid #a7f3d0;border-radius:8px;background:var(--green-soft)}.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}.card{padding:18px;border:1px solid var(--line);border-radius:8px}.card h3{margin:0 0 8px;font-size:17px}.card p{margin:0;font-size:15px}ol,ul{color:var(--text);padding-left:24px}li{margin:8px 0}code{padding:2px 5px;background:#e2e8f0;border-radius:3px;font-size:.92em}details{margin:22px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}summary{color:var(--blue);cursor:pointer;font-weight:700}details[open] summary{margin-bottom:14px}footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}footer a{color:var(--blue)}@media(max-width:760px){body{padding:32px 20px 56px}main{margin-top:48px}.section{grid-template-columns:1fr;gap:16px;margin-top:38px}.compare{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{margin:0;padding:48px clamp(20px,7vw,100px) 80px;max-width:1280px;color:var(--ink);background:#fff;font:16px/1.7 'Google Sans',Arial,sans-serif}nav{margin-bottom:42px;font-size:13px}nav a{color:var(--blue);text-decoration:none;font-weight:600}.eyebrow{color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}h1{max-width:850px;margin:8px 0 18px;font-size:clamp(38px,6vw,70px);line-height:1.05;letter-spacing:-.045em}.lead{max-width:780px;margin:0;color:var(--text);font-size:20px;line-height:1.55}main{margin-top:72px}.section{display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,2.3fr);gap:34px;margin-top:52px;padding-top:30px;border-top:1px solid var(--line)}h2{margin:0;font-size:clamp(25px,3vw,36px);line-height:1.2;letter-spacing:-.03em}h3{margin:30px 0 10px;font-size:19px;line-height:1.3}p{margin:0 0 18px;color:var(--text)}strong{color:var(--ink)}.formula{margin:22px 0;padding:16px 18px;overflow-wrap:anywhere;border-left:3px solid var(--blue);background:var(--soft);color:var(--ink);font:20px/1.55 Georgia,'Times New Roman',serif;text-align:center}.formula mjx-container{margin:.15em 0!important;max-width:100%;overflow-x:auto;overflow-y:hidden}.formula mjx-container[display=true]{margin:0!important}.diagram{margin:24px 0 28px;text-align:center}.diagram img{display:block;width:100%;max-width:780px;height:auto;margin:0 auto 10px;border:1px solid var(--line)}.diagram figcaption{color:var(--muted);font-size:14px;line-height:1.5}.code-block{margin:22px 0;padding:20px;overflow-x:auto;background:#0f172a;color:#e2e8f0;border-radius:8px;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre}.code-block code{padding:0;background:none;border-radius:0;font-size:inherit}.intuition{margin:24px 0;padding:18px 20px;border:1px solid #bfdbfe;border-radius:8px;background:var(--blue-soft)}.intuition p:last-child{margin-bottom:0}.warning{margin:24px 0;padding:18px 20px;border:1px solid #fcd34d;border-radius:8px;background:var(--amber-soft)}.success{margin:24px 0;padding:18px 20px;border:1px solid #a7f3d0;border-radius:8px;background:var(--green-soft)}.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}.card{padding:18px;border:1px solid var(--line);border-radius:8px}.card h3{margin:0 0 8px;font-size:17px}.card p{margin:0;font-size:15px}ol,ul{color:var(--text);padding-left:24px}li{margin:8px 0}code{padding:2px 5px;background:#e2e8f0;border-radius:3px;font-size:.92em}details{margin:22px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}summary{color:var(--blue);cursor:pointer;font-weight:700}details[open] summary{margin-bottom:14px}footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}footer a{color:var(--blue)}@media(max-width:760px){body{padding:32px 20px 56px}main{margin-top:48px}.section{grid-template-columns:1fr;gap:16px;margin-top:38px}.compare{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav aria-label="Deep RL navigation"><a href="index.html">&larr; Back to All Chapters</a></nav>
+<header>
+<div class="eyebrow">Deep Reinforcement Learning · Algorithm 1</div>
+<h1>Deep Q-Networks (DQN)</h1>
+<p class="lead">Start with a Q-table. Replace the table with a neural network. Then learn why two simple ideas—experience replay and a target network—make the whole thing work.</p>
+</header>
+<main>
+<section class="section" aria-labelledby="one-sentence">
+<div><div class="eyebrow">The whole idea</div><h2 id="one-sentence">DQN in one sentence</h2></div>
+<div>
+<p><strong>DQN is Q-learning with a neural network standing in for the Q-table.</strong></p>
+<p>Given a state, the network looks at the situation and outputs one number for each possible action. That number is the action’s estimated long-term value.</p>
+<div class="intuition"><p><strong>If you remember only one thing:</strong> DQN learns to answer, “If I am in this situation, how good is each action likely to be?” Then it chooses the action with the highest answer.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="q-table">
+<div><div class="eyebrow">Step 1</div><h2 id="q-table">Begin with the Q-table</h2></div>
+<div>
+<p>Suppose an agent is playing a tiny game. Its state might be <strong>“the ball is above me”</strong>, and its actions might be <strong>left</strong>, <strong>right</strong>, and <strong>stay</strong>.</p>
+<p>A Q-table stores one value for every state–action pair:</p>
+<div class="formula"><strong>Q(s,a)</strong> = how good it is to take action <strong>a</strong> in state <strong>s</strong></div>
+<p>The agent looks across the row for its current state and chooses the action with the largest value. The table is simply a collection of memories: “In this situation, this action eventually worked this well.”</p>
+<div class="compare"><div class="card"><h3>State</h3><p>What the agent currently sees.</p></div><div class="card"><h3>Action</h3><p>What the agent can do next.</p></div><div class="card"><h3>Q-value</h3><p>The expected future reward after choosing that action.</p></div><div class="card"><h3>Policy</h3><p>Choose the action with the largest Q-value.</p></div></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="scale">
+<div><div class="eyebrow">Step 2</div><h2 id="scale">Why the table breaks</h2></div>
+<div>
+<p>Tables work when there are only a few states. But an image from an Atari game may contain tens of thousands of pixels. Even if each pixel had only 256 possible values, the number of possible images would be unimaginably large.</p>
+<p>Worse, the agent will almost never see exactly the same image twice. A table treats two nearly identical images as completely unrelated entries.</p>
+<div class="intuition"><p>We need <strong>generalization</strong>: if the agent learns that a ball moving left is dangerous, it should use that knowledge when the ball is slightly higher or lower—not start from zero every time.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="network">
+<div><div class="eyebrow">Step 3</div><h2 id="network">Replace the table with a neural network</h2></div>
+<div>
+<p>Instead of storing a separate number for every state–action pair, give the state to a neural network. Let its parameters be <strong>θ</strong>:</p>
+<div class="formula"><strong>Q(s,a; θ)</strong> = the network’s estimate of the value of action <strong>a</strong> in state <strong>s</strong></div>
+<p>The network receives one state and produces all action values at once:</p>
+<div class="formula"><strong>network(state) → [Q(state,left), Q(state,right), Q(state,stay)]</strong></div>
+<p>Now similar states can produce similar answers because the same weights are reused. That is the key benefit of function approximation.</p>
+<figure class="diagram"><img src="assets/dqn/tabular-to-deep-q-learning.png" onerror="this.onerror=null;this.src='docs/assets/dqn/tabular-to-deep-q-learning.png'" alt="Comparison of a tabular Q-learning table with a deep Q-learning neural network that outputs one Q-value per action"><figcaption>The table stores one Q-value for every state–action pair. The neural network instead reads the state and outputs the Q-value for each available action.</figcaption></figure>
+<div class="success"><p><strong>The big substitution:</strong> Q-table lookup becomes neural-network prediction. The goal is still exactly the same: estimate Q-values and choose the best action.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="target">
+<div><div class="eyebrow">Step 4</div><h2 id="target">Where should the network move?</h2></div>
+<div>
+<p>After taking action <strong>A<sub>t</sub></strong>, the agent receives reward <strong>R<sub>t+1</sub></strong> and sees the next state <strong>S<sub>t+1</sub></strong>. Q-learning gives us a target: immediate reward plus the best estimated future value.</p>
+<div class="formula"><strong>Y<sub>t</sub> = R<sub>t+1</sub> + γ max<sub>a</sub> Q(S<sub>t+1</sub>, a; θ)</strong></div>
+<p>The network’s current prediction is <strong>Q(S<sub>t</sub>, A<sub>t</sub>; θ)</strong>. The error is:</p>
+<div class="formula"><strong>loss = [Y<sub>t</sub> − Q(S<sub>t</sub>, A<sub>t</sub>; θ)]²</strong></div>
+<p>Gradient descent changes θ so the prediction moves closer to the target. If the target says “this action was worth 7” but the network predicted 4, training pushes that prediction upward.</p>
+<div class="intuition"><p><strong>Important:</strong> the target is not a mysterious label supplied by a teacher. The agent builds it from the reward it just received and its own estimate of what can happen next.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="deadly">
+<div><div class="eyebrow">The problem</div><h2 id="deadly">Why naïve neural Q-learning is unstable</h2></div>
+<div>
+<p>Neural networks usually learn well from a large, varied dataset whose examples are reasonably independent. An agent does not naturally produce that kind of data.</p>
+<div class="compare"><div class="card"><h3>Correlated experiences</h3><p>Consecutive frames look almost identical. Training on them one after another gives the network a narrow, repetitive view.</p></div><div class="card"><h3>Moving targets</h3><p>The target uses the same network that is being updated. The answer moves while the network is trying to chase it.</p></div></div>
+<p>These two problems can make learning oscillate, diverge, or erase useful behavior. The original DQN paper introduced two stabilizers.</p>
+</div>
+</section>
+
+<section class="section" aria-labelledby="replay">
+<div><div class="eyebrow">Stabilizer 1</div><h2 id="replay">Experience replay</h2></div>
+<div>
+<p>Every interaction creates a small experience:</p>
+<div class="formula"><strong>(S<sub>t</sub>, A<sub>t</sub>, R<sub>t+1</sub>, S<sub>t+1</sub>)</strong></div>
+<p>DQN stores these experiences in a replay memory. During training, it randomly samples a mini-batch from that memory instead of learning only from the most recent few steps.</p>
+<figure class="diagram"><img src="assets/dqn/experience-replay.png" onerror="this.onerror=null;this.src='docs/assets/dqn/experience-replay.png'" alt="Experience replay flow showing game states and rewards entering an experience buffer, then a sampled subset training the Q-network"><figcaption>The agent collects transitions while acting, stores them in the experience buffer, and later samples a subset to train the Q-network.</figcaption></figure>
+<ol><li>Play and collect experiences.</li><li>Put each experience in replay memory.</li><li>Randomly sample a small batch.</li><li>Learn from that batch.</li></ol>
+<p>Random sampling breaks up the time-order correlation. Old experiences can also be used many times, which makes learning more data-efficient.</p>
+<div class="intuition"><p>Replay turns the agent’s stream of highly related moments into a more shuffled training dataset.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="target-network">
+<div><div class="eyebrow">Stabilizer 2</div><h2 id="target-network">The target network</h2></div>
+<div>
+<p>DQN keeps two networks:</p>
+<div class="compare"><div class="card"><h3>Online network</h3><p><strong>Q(s,a; θ)</strong>. Learns every training step and chooses actions.</p></div><div class="card"><h3>Target network</h3><p><strong>Q(s,a; θ<sup>−</sup>)</strong>. Produces the target and is held still for a while.</p></div></div>
+<p>The target becomes:</p>
+<div class="formula"><strong>Y<sub>t</sub> = R<sub>t+1</sub> + γ max<sub>a</sub> Q(S<sub>t+1</sub>, a; θ<sup>−</sup>)</strong></div>
+<p>Every so often, DQN copies the online weights into the target network:</p>
+<div class="formula"><strong>θ<sup>−</sup> ← θ</strong></div>
+<figure class="diagram"><img src="target-network-stability.png?v=3" onerror="this.onerror=null;this.src='assets/dqn/target-network-stability.png?v=3'" alt="Target network diagram explaining frozen parameters, periodic updates, stable TD targets, and soft updates"><figcaption>The target network is held fixed while the online network learns, producing more stable bootstrap targets. It can be copied periodically or updated softly.</figcaption></figure>
+<p>For many updates, the target stays fixed. The online network can then learn toward a stable reference instead of chasing a target that changes after every gradient step.</p>
+<div class="success"><p><strong>The two fixes in plain English:</strong> replay makes the examples less correlated; the target network makes the answers less twitchy.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="algorithm">
+<div><div class="eyebrow">Put it together</div><h2 id="algorithm">The DQN algorithm</h2></div>
+<div>
+<ol><li>Initialize the online network with random weights <strong>θ</strong>.</li><li>Copy those weights into the target network: <strong>θ<sup>−</sup> ← θ</strong>.</li><li>Observe the current state <strong>S<sub>t</sub></strong>.</li><li>Choose an action using ε-greedy exploration: usually take the best predicted action, but sometimes try a random action.</li><li>Take the action and observe reward <strong>R<sub>t+1</sub></strong> and next state <strong>S<sub>t+1</sub></strong>.</li><li>Store the transition in replay memory.</li><li>Sample a random mini-batch from memory.</li><li>Build each target using the target network.</li><li>Train the online network to reduce the squared prediction error.</li><li>Periodically copy the online weights into the target network.</li></ol>
+<figure class="diagram"><img src="assets/dqn/dqn-algorithm.svg" onerror="this.onerror=null;this.src='docs/assets/dqn/dqn-algorithm.svg'" alt="DQN algorithm flowchart showing action selection, experience replay, Q-network training, and target-network updates"><figcaption>The complete DQN loop: act, store experience, sample a batch, train the online network, and periodically update the target network.</figcaption></figure>
+<div class="formula"><strong>target = reward + γ × best next-state value</strong></div>
+<div class="intuition"><p>That is DQN. Everything else—network architecture, replay size, batch size, learning rate, discount factor, and exploration schedule—is an implementation choice around this loop.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="code-map">
+<div><div class="eyebrow">Line by line</div><h2 id="code-map">What each piece is doing</h2></div>
+<div>
+<div class="compare"><div class="card"><h3><code>QNetwork</code></h3><p>The neural approximation of the Q-table. Its output has one entry per action.</p></div><div class="card"><h3><code>ReplayBuffer</code></h3><p>Stores <code>(state, action, reward, next_state, done)</code> and returns random mini-batches.</p></div><div class="card"><h3><code>select_action</code></h3><p>Implements ε-greedy exploration: random action with probability ε, best predicted action otherwise.</p></div><div class="card"><h3><code>chosen_q</code></h3><p><code>online_net(states)</code> gives all action values; <code>gather</code> keeps the value of the action actually taken.</p></div><div class="card"><h3><code>target_q</code></h3><p>The Bellman target: reward plus discounted best next-state value from the target network.</p></div><div class="card"><h3><code>loss.backward()</code></h3><p>Computes gradients showing how the online network should change to reduce prediction error.</p></div></div>
+<div class="warning"><p><strong>Notice the separation:</strong> <code>optimizer.step()</code> updates <code>online_net</code>. The target network is updated only by the occasional <code>load_state_dict</code> copy.</p></div>
+<p>The line <code>target_net.eval()</code> does not freeze its weights by itself; it switches evaluation behavior for layers such as dropout or batch normalization. The real stability comes from never passing target-network outputs into the optimizer’s gradient path and copying its parameters only periodically.</p>
+</div>
+</section>
+
+<section class="section" aria-labelledby="piecewise">
+<div><div class="eyebrow">Slow walkthrough</div><h2 id="piecewise">The code, piece by piece</h2></div>
+<div>
+<p>Here is a complete implementation broken into small, cumulative pieces. Copy the pieces in order into one Python file; each piece supplies something used by the next one.</p>
+
+<details open><summary>0. Imports, environment, and settings</summary>
+<pre class="code-block"><code>import random
+from collections import deque, namedtuple
+
+import gymnasium as gym
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+env = gym.make("CartPole-v1")
+state_dim = env.observation_space.shape[0]
+action_dim = env.action_space.n
+
+gamma = 0.99
+batch_size = 128
+target_update_every = 1_000</code></pre>
+<p>These imports provide the environment, tensors, neural-network layers, optimizer, and replay-memory tools. The environment tells us the size of a state and how many actions exist.</p>
+</details>
+
+<details><summary>1. Define the Q-network and create two copies</summary>
+<pre class="code-block"><code>class QNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(state_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, action_dim),
+        )
+
+    def forward(self, state):
+        return self.layers(state)
+
+
+online_net = QNetwork().to(device)
+target_net = QNetwork().to(device)
+target_net.load_state_dict(online_net.state_dict())
+target_net.eval()
+optimizer = optim.AdamW(online_net.parameters(), lr=1e-3)</code></pre>
+<p>At the beginning, both networks have identical weights. The <strong>online network</strong> will learn every step. The <strong>target network</strong> will provide the relatively stable answer used to build the target.</p>
+</details>
+
+<details><summary>2. Define ε-greedy action selection</summary>
+<pre class="code-block"><code>epsilon_start, epsilon_end, epsilon_decay = 1.0, 0.05, 10_000
+steps_done = 0
+
+def select_action(state):
+    global steps_done
+    epsilon = epsilon_end + (epsilon_start - epsilon_end) * np.exp(
+        -steps_done / epsilon_decay
+    )
+    steps_done += 1
+
+    if random.random() &lt; epsilon:
+        return env.action_space.sample()
+
+    with torch.no_grad():
+        state_tensor = torch.as_tensor(state, dtype=torch.float32, device=device)
+        q_values = online_net(state_tensor.unsqueeze(0))
+        return q_values.argmax(dim=1).item()</code></pre>
+<p>If there are two actions, the output might be <code>[3.2, 1.7]</code>. The network is saying: “in this state, action 0 currently looks better.” The network does not output an action directly; it outputs Q-values, and <code>argmax</code> chooses the largest one.</p>
+</details>
+
+<details><summary>3. Sometimes explore with ε-greedy</summary>
+<pre class="code-block"><code>if random.random() &lt; epsilon:
+    action = env.action_space.sample()  # explore
+else:
+    action = q_values.argmax(dim=1).item()  # exploit</code></pre>
+<p>With probability ε, the agent tries a random action. Otherwise, it uses what the network currently believes. ε starts large so the agent explores, then gradually becomes smaller so the agent uses what it has learned.</p>
+</details>
+
+<details><summary>4. Build the replay buffer and store experiences</summary>
+<pre class="code-block"><code>Transition = namedtuple(
+    "Transition", ["state", "action", "reward", "next_state", "done"]
+)
+
+class ReplayBuffer:
+    def __init__(self, capacity):
+        self.memory = deque(maxlen=capacity)
+
+    def push(self, *args):
+        self.memory.append(Transition(*args))
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
+
+
+replay = ReplayBuffer(capacity=50_000)
+replay.push(state, action, reward, next_state, done)</code></pre>
+<p>One stored transition is a five-part memory:</p>
+<div class="formula"><strong>(S<sub>t</sub>, A<sub>t</sub>, R<sub>t+1</sub>, S<sub>t+1</sub>, done)</strong></div>
+<p>It records what the agent saw, did, received, saw next, and whether the episode ended.</p>
+</details>
+
+<details><summary>5. Ask the online network what happened</summary>
+<pre class="code-block"><code>def optimize_model():
+    if len(replay) &lt; batch_size:
+        return
+
+    batch = Transition(*zip(*replay.sample(batch_size)))
+    states = torch.as_tensor(np.asarray(batch.state), dtype=torch.float32, device=device)
+    actions = torch.as_tensor(batch.action, dtype=torch.long, device=device).unsqueeze(1)
+    rewards = torch.as_tensor(batch.reward, dtype=torch.float32, device=device)
+    dones = torch.as_tensor(batch.done, dtype=torch.bool, device=device)
+
+    all_q_values = online_net(states)
+    chosen_q = all_q_values.gather(1, actions).squeeze(1)</code></pre>
+<p><code>all_q_values</code> contains a value for every possible action. <code>gather</code> selects only the action that was actually taken. This is the prediction that will be corrected.</p>
+<div class="formula"><strong>prediction = Q(S<sub>t</sub>, A<sub>t</sub>; θ)</strong></div>
+</details>
+
+<details><summary>6. Build the Bellman target</summary>
+<pre class="code-block"><code>    with torch.no_grad():
+        non_final = ~dones
+        next_q = torch.zeros(batch_size, device=device)
+        if non_final.any():
+            next_states = torch.as_tensor(
+                np.asarray([s for s, done in zip(batch.next_state, batch.done) if not done]),
+                dtype=torch.float32,
+                device=device,
+            )
+            best_next_q = target_net(next_states).max(dim=1).values
+            next_q[non_final] = best_next_q
+
+    target_q = rewards + gamma * next_q</code></pre>
+<p>The target network looks at the next state and estimates the best future value. We add the immediate reward to the discounted future value.</p>
+<div class="formula"><strong>target = R<sub>t+1</sub> + γ max<sub>a</sub> Q(S<sub>t+1</sub>, a; θ<sup>−</sup>)</strong></div>
+<p><code>torch.no_grad()</code> is important: the target is treated as a fixed answer for this training step. We do not send gradients into the target network.</p>
+</details>
+
+<details><summary>7. Compare prediction with target</summary>
+<pre class="code-block"><code>    loss = nn.functional.smooth_l1_loss(chosen_q, target_q)
+
+    optimizer.zero_grad()
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(online_net.parameters(), max_norm=10.0)
+    optimizer.step()</code></pre>
+<p>The loss measures how far the online network’s prediction is from the Bellman target. Backpropagation calculates how to change the online network’s weights, and <code>optimizer.step()</code> applies that change.</p>
+</details>
+
+<details><summary>8. Periodically refresh the target network</summary>
+<pre class="code-block"><code>if steps_done % target_update_every == 0:
+    target_net.load_state_dict(online_net.state_dict())</code></pre>
+<p>The target network is not updated after every gradient step. We copy the online network’s weights only occasionally. That pause is what stops the target from moving too quickly.</p>
+</details>
+
+<details><summary>9. Run the environment loop</summary>
+<pre class="code-block"><code>for episode in range(500):
+    state, _ = env.reset()
+
+    for _ in range(1_000):
+        action = select_action(state)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+
+        replay.push(state, action, reward, next_state, done)
+        optimize_model()
+        state = next_state
+
+        if steps_done % target_update_every == 0:
+            target_net.load_state_dict(online_net.state_dict())
+
+        if done:
+            break
+
+env.close()</code></pre>
+<p>This is the loop that connects everything: observe, choose, act, store, learn, and occasionally refresh the target network.</p>
+</details>
+
+<div class="success"><p><strong>The complete mental model:</strong> predict with the online network, compare against a target built with the quieter target network, learn from the error, and occasionally refresh the target network.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="double-dqn">
+<div><div class="eyebrow">Important improvement</div><h2 id="double-dqn">Double DQN</h2></div>
+<div>
+<p>The difference comes down to how each one computes the target value used to train the Q-network.</p>
+
+<h3>DQN</h3>
+<p>The target for a transition <strong>(s, a, r, s′)</strong> is:</p>
+<div class="formula"><strong>y = r + γ · max<sub>a′</sub> Q<sub>target</sub>(s′, a′)</strong></div>
+<p>The target network both <em>selects</em> the best next action and <em>evaluates</em> it. Because the max is taken over noisy estimates, it systematically picks up positive noise, so Q-values get <strong>overestimated</strong>. That bias can compound through bootstrapping and destabilize learning or lead to poor policies.</p>
+
+<h3>Double DQN (DDQN)</h3>
+<p>DDQN decouples selection from evaluation:</p>
+<div class="formula"><strong>y = r + γ · Q<sub>target</sub>(s′, argmax<sub>a′</sub> Q<sub>online</sub>(s′, a′))</strong></div>
+<ul><li>The <strong>online</strong> network picks the action.</li><li>The <strong>target</strong> network scores that action.</li></ul>
+<p>Since the two networks have different errors, it is much less likely that the same noise inflates both the choice and its value, which reduces overestimation.</p>
+
+<h3>Practical points</h3>
+<ul><li>It is a one-line change to DQN. No new networks or hyperparameters are needed, since the target network already exists.</li><li>It usually gives more accurate value estimates and more stable training, and often better final performance, especially in environments where overestimation hurts.</li><li>It is not a perfect fix: the two networks are correlated because the target is a lagged copy, so some overestimation remains, but it is substantially reduced.</li><li>Compute cost is essentially the same, with one extra forward pass of the online network on s′.</li></ul>
+</div>
+</section>
+
+<section class="section" aria-labelledby="paper">
+<div><div class="eyebrow">Paper connection</div><h2 id="paper">What the original DQN paper added</h2></div>
+<div>
+<p>The original paper, <em>Playing Atari with Deep Reinforcement Learning</em>, showed that one algorithm could learn directly from pixels and play several Atari 2600 games.</p>
+<p>Its important recipe was not simply “put a neural network into Q-learning.” It combined:</p>
+<ul><li>raw game frames as input, processed by a convolutional neural network;</li><li>one Q-value output for each available joystick action;</li><li>experience replay;</li><li>a periodically updated target network;</li><li>ε-greedy exploration;</li><li>clipped rewards to keep the learning signal manageable.</li></ul>
+<p>The paper’s deeper lesson is that a neural network can learn useful visual features and action values together when the learning signal is stabilized carefully.</p>
+<details><summary>Read the paper</summary><p><a href="https://arxiv.org/abs/1312.5602" target="_blank" rel="noopener">Playing Atari with Deep Reinforcement Learning</a> by Volodymyr Mnih and colleagues. We will return to the paper’s architecture, preprocessing, training details, and results as we continue.</p></details>
+</div>
+</section>
+
+<section class="section" aria-labelledby="takeaway">
+<div><div class="eyebrow">Final picture</div><h2 id="takeaway">The “wow, I get it” summary</h2></div>
+<div>
+<p>Q-learning says: <strong>estimate how good each action is, then choose the best one.</strong></p>
+<p>DQN says: <strong>use a neural network to estimate those action values when a table is too small and too rigid.</strong></p>
+<p>Because neural networks make the learning problem unstable, DQN adds:</p>
+<ul><li><strong>experience replay</strong> to shuffle and reuse experiences;</li><li><strong>a target network</strong> to keep the learning target steady for a while.</li></ul>
+<div class="success"><p><strong>So DQN is not a brand-new idea replacing Q-learning.</strong> It is Q-learning scaled up with function approximation and stabilized with two carefully chosen tricks.</p></div>
+<p style="font-size:14px">Next: a worked numerical example, pseudocode, and a closer reading of the DQN paper’s Atari setup.</p>
+</div>
+</section>
+</main>
+<footer>Deep RL Algorithms · DQN · <a href="index.html">All notes</a></footer>
+<script>
+  window.MathJax = { tex: { displayMath: [['\\[', '\\]']], inlineMath: [['\\(', '\\)']] }, svg: { fontCache: 'global' }, startup: { typeset: false } };
+  function formulaToTex(node) {
+    if (node.nodeType === Node.TEXT_NODE) return node.nodeValue;
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const children = Array.from(node.childNodes).map(formulaToTex).join('');
+    if (node.tagName === 'SUB') return '_{' + children + '}';
+    if (node.tagName === 'SUP') return '^{' + children + '}';
+    return children;
+  }
+  function normalizeTex(text) {
+    return text.replace(/π/g, '\\pi').replace(/θ/g, '\\theta').replace(/γ/g, '\\gamma ')
+      .replace(/ε/g, '\\varepsilon').replace(/∈/g, '\\in').replace(/−/g, '-')
+      .replace(/×/g, '\\times').replace(/·/g, '\\cdot').replace(/\s+/g, ' ').trim();
+  }
+  function prepareFormulas() { document.querySelectorAll('.formula').forEach((box) => { const tex = normalizeTex(formulaToTex(box)); box.textContent = '\\[' + tex + '\\]'; }); }
+  function waitForMathJax() { if (window.MathJax && MathJax.startup && MathJax.startup.promise) { MathJax.startup.promise.then(() => { prepareFormulas(); return MathJax.typesetPromise(); }); } else window.setTimeout(waitForMathJax, 50); }
+  waitForMathJax();
+</script>
+</body>
+</html>

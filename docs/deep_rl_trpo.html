@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trust Region Policy Optimization (TRPO) — Reinforcement Learning Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0f172a;--text:#334155;--muted:#64748b;--line:#cbd5e1;--soft:#f8fafc;--blue:#1d4ed8;--blue-soft:#eff6ff;--green:#047857;--green-soft:#ecfdf5;--amber-soft:#fffbeb}
+*{box-sizing:border-box}body{margin:0;padding:48px clamp(20px,7vw,100px) 80px;max-width:1280px;color:var(--ink);background:#fff;font:16px/1.7 'Google Sans',Arial,sans-serif}nav{margin-bottom:42px;font-size:13px}nav a{color:var(--blue);text-decoration:none;font-weight:600}.eyebrow{color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}h1{max-width:850px;margin:8px 0 18px;font-size:clamp(38px,6vw,70px);line-height:1.05;letter-spacing:-.045em}.lead{max-width:780px;margin:0;color:var(--text);font-size:20px;line-height:1.55}main{margin-top:72px}.section{display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,2.3fr);gap:34px;margin-top:52px;padding-top:30px;border-top:1px solid var(--line)}h2{margin:0;font-size:clamp(25px,3vw,36px);line-height:1.2;letter-spacing:-.03em}h3{margin:30px 0 10px;font-size:19px;line-height:1.3}p{margin:0 0 18px;color:var(--text)}strong{color:var(--ink)}.formula{margin:22px 0;padding:16px 18px;overflow-wrap:anywhere;border-left:3px solid var(--blue);background:var(--soft);color:var(--ink);font:20px/1.55 Georgia,'Times New Roman',serif;text-align:center}.formula mjx-container{margin:.15em 0!important;max-width:100%;overflow-x:auto;overflow-y:hidden}.formula mjx-container[display=true]{margin:0!important}.quote{margin:24px 0;padding:20px 22px;border-left:4px solid var(--blue);background:var(--soft);color:var(--text)}.quote p:last-child{margin-bottom:0}.quote cite{display:block;margin-top:12px;color:var(--muted);font-size:14px;font-style:normal}.kl-example{margin:26px 0;padding:22px;border:1px solid #dbeafe;border-radius:14px;background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 55%,#ecfdf5 100%)}.kl-example-title{margin:0 0 6px;color:var(--ink);font-size:21px;font-weight:700}.kl-example-subtitle{margin:0 0 20px;color:var(--muted);font-size:14px}.distribution-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.distribution-card{padding:16px;background:rgba(255,255,255,.85);border:1px solid rgba(148,163,184,.35);border-radius:10px}.distribution-card h4{margin:0 0 14px;font-size:16px}.bar-row{display:grid;grid-template-columns:72px 1fr 45px;align-items:center;gap:9px;margin:10px 0;font-size:14px;color:var(--text)}.bar-track{height:10px;overflow:hidden;border-radius:99px;background:#e2e8f0}.bar-fill{height:100%;border-radius:99px}.bar-fill.sunny{background:#f59e0b}.bar-fill.rainy{background:#38bdf8}.source-card .bar-fill{background:#2563eb}.model-card .bar-fill{background:#10b981}.kl-result{margin:18px 0 0;padding:12px 16px;border-radius:9px;background:#0f172a;color:#fff;text-align:center;font-weight:600}.intuition{margin:24px 0;padding:18px 20px;border:1px solid #bfdbfe;border-radius:8px;background:var(--blue-soft)}.intuition p:last-child{margin-bottom:0}.warning{margin:24px 0;padding:18px 20px;border:1px solid #fcd34d;border-radius:8px;background:var(--amber-soft)}.success{margin:24px 0;padding:18px 20px;border:1px solid #a7f3d0;border-radius:8px;background:var(--green-soft)}.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}.card{padding:18px;border:1px solid var(--line);border-radius:8px}.card h3{margin:0 0 8px;font-size:17px}.card p{margin:0;font-size:15px}ol,ul{color:var(--text);padding-left:24px}li{margin:8px 0}code{padding:2px 5px;background:#e2e8f0;border-radius:3px;font-size:.92em}footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}footer a{color:var(--blue)}@media(max-width:760px){body{padding:32px 20px 56px}main{margin-top:48px}.section{grid-template-columns:1fr;gap:16px;margin-top:38px}.compare,.distribution-grid{grid-template-columns:1fr}}
+</style>
+<style>
+.diagram{margin:24px 0 28px;text-align:center}
+.diagram img{display:block;width:100%;max-width:850px;height:auto;margin:0 auto 10px;border:1px solid var(--line)}
+.diagram figcaption{color:var(--muted);font-size:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<nav aria-label="Deep RL navigation"><a href="index.html">&larr; Back to All Chapters</a></nav>
+<header>
+<div class="eyebrow">Deep Reinforcement Learning · Algorithm 2</div>
+<h1>Trust Region Policy Optimization (TRPO)</h1>
+<p class="lead">A careful way to improve a policy: make the update useful, but keep the new policy close enough to the old one that the learning step remains trustworthy.</p>
+</header>
+<main>
+<section class="section" aria-labelledby="one-sentence">
+<div><div class="eyebrow">The whole idea</div><h2 id="one-sentence">TRPO in one sentence</h2></div>
+<div>
+<p><strong>TRPO improves the policy while limiting how far the new policy is allowed to move from the old policy.</strong></p>
+<p>Policy gradients tell us which direction should improve expected return. But a step that is too large can destroy a policy that was already working. TRPO puts a “trust region” around the update.</p>
+<div class="intuition"><p><strong>Imagine walking downhill in fog:</strong> the gradient tells you which direction looks better, but TRPO prevents you from taking a giant step based on an uncertain local estimate.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="concrete-problem">
+<div><div class="eyebrow">Start with a concrete picture</div><h2 id="concrete-problem">What can go wrong?</h2></div>
+<div>
+<p>Imagine that, in one state, the current policy chooses <strong>left</strong> 60% of the time and <strong>right</strong> 40% of the time. From the data it collected, the gradient says that <strong>right</strong> seems slightly better.</p>
+<p>A normal policy-gradient update might make the new policy choose right 95% of the time. That sounds like progress, but the evidence may have been noisy. The agent may suddenly stop trying left, even though left was still useful in many situations.</p>
+<div class="compare"><div class="card"><h3>Old policy</h3><p>Left: 60%<br>Right: 40%</p></div><div class="card"><h3>Aggressive update</h3><p>Left: 5%<br>Right: 95%</p></div></div>
+<p>TRPO asks for a more cautious change. It may move the policy to something like left 52%, right 48%—a real improvement, but still close enough to the policy that generated the data.</p>
+<div class="success"><p><strong>That is the central idea:</strong> the gradient chooses the direction; the trust region controls the size of the move.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="three-questions">
+<div><div class="eyebrow">TRPO’s three questions</div><h2 id="three-questions">What is the algorithm trying to do?</h2></div>
+<div>
+<div class="compare"><div class="card"><h3>Question 1: Is this action useful?</h3><p>The advantage <strong>Â<sub>t</sub></strong> answers whether the chosen action was better or worse than the policy’s usual action in that state.</p></div><div class="card"><h3>Question 2: How should the policy change?</h3><p>The probability ratio <strong>r<sub>t</sub>(θ)</strong> measures how much more or less likely the new policy makes the observed action.</p></div><div class="card"><h3>Question 3: Did we move too far?</h3><p>KL divergence measures how different the new action distribution is from the old one.</p></div><div class="card"><h3>TRPO’s answer</h3><p>Increase the probability of useful actions, but only while the new policy remains close to the old policy.</p></div></div>
+<div class="formula"><strong>Useful action signal + cautious policy movement = TRPO</strong></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="problem">
+<div><div class="eyebrow">Step 1</div><h2 id="problem">Why ordinary policy updates can fail</h2></div>
+<div>
+<p>A policy gradient update has the form:</p>
+<div class="formula"><strong>θ<sub>new</sub> = θ<sub>old</sub> + α ∇<sub>θ</sub>J(θ)</strong></div>
+<p>This looks reasonable, but the learning rate <strong>α</strong> is only a rough guess. If the step is too small, learning is painfully slow. If it is too large, the new policy may behave very differently and perform much worse.</p>
+<div class="compare"><div class="card"><h3>Small update</h3><p>Usually safer, but may waste many samples and take a long time.</p></div><div class="card"><h3>Large update</h3><p>Can improve quickly, but may move into a policy that produces terrible data.</p></div></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="surrogate">
+<div><div class="eyebrow">Step 2</div><h2 id="surrogate">What should the new policy optimize?</h2></div>
+<div>
+<p>We want to estimate how well a candidate policy <strong>π<sub>θ</sub></strong> would perform using experience collected by the old policy <strong>π<sub>old</sub></strong>. TRPO uses a surrogate objective built from the probability ratio:</p>
+<div class="formula"><strong>r<sub>t</sub>(θ) = π<sub>θ</sub>(A<sub>t</sub>|S<sub>t</sub>) / π<sub>old</sub>(A<sub>t</sub>|S<sub>t</sub>)</strong></div>
+<p>This ratio answers: <strong>how much more or less likely does the new policy make the action that was actually observed?</strong></p>
+<div class="compare"><div class="card"><h3>Ratio = 1</h3><p>The new policy gives the observed action exactly the same probability.</p></div><div class="card"><h3>Ratio &gt; 1</h3><p>The new policy makes the observed action more likely.</p></div><div class="card"><h3>Ratio &lt; 1</h3><p>The new policy makes the observed action less likely.</p></div></div>
+<div class="formula"><strong>L(θ) = E<sub>t</sub>[r<sub>t</sub>(θ) Â<sub>t</sub>]</strong></div>
+<p><strong>Â<sub>t</sub></strong> is the advantage. If an action was better than expected, increasing its probability improves the objective. If it was worse than expected, decreasing its probability improves the objective.</p>
+<div class="intuition"><p>The surrogate objective estimates improvement without having to collect a completely new batch of experience for every candidate policy.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="trust-region">
+<div><div class="eyebrow">Step 3</div><h2 id="trust-region">The trust-region constraint</h2></div>
+<div>
+<p>Maximizing the surrogate objective alone could make the policy ratio enormous. TRPO therefore adds a constraint: the new policy must remain close to the old policy.</p>
+<div class="formula"><strong>maximize<sub>θ</sub> E<sub>t</sub>[r<sub>t</sub>(θ) Â<sub>t</sub>]</strong></div>
+<div class="formula"><strong>subject to E<sub>t</sub>[KL(π<sub>old</sub>(·|S<sub>t</sub>) || π<sub>θ</sub>(·|S<sub>t</sub>))] ≤ δ</strong></div>
+<p>KL divergence measures how different two probability distributions are. The small number <strong>δ</strong> is the trust-region size.</p>
+<div class="kl-example"><p class="kl-example-title">A normal example: weather predictions</p><p class="kl-example-subtitle">KL divergence compares a real distribution with an approximate model.</p><div class="distribution-grid"><div class="distribution-card source-card"><h4>Real weather pattern P</h4><div class="bar-row"><span>Sunny</span><div class="bar-track"><div class="bar-fill sunny" style="width:75%"></div></div><strong>75%</strong></div><div class="bar-row"><span>Rainy</span><div class="bar-track"><div class="bar-fill rainy" style="width:25%"></div></div><strong>25%</strong></div></div><div class="distribution-card model-card"><h4>Forecast model Q</h4><div class="bar-row"><span>Sunny</span><div class="bar-track"><div class="bar-fill sunny" style="width:50%"></div></div><strong>50%</strong></div><div class="bar-row"><span>Rainy</span><div class="bar-track"><div class="bar-fill rainy" style="width:50%"></div></div><strong>50%</strong></div></div></div><div class="kl-result">D<sub>KL</sub>(P || Q) = 0.75 log(0.75/0.50) + 0.25 log(0.25/0.50) ≈ 0.131</div><p style="margin:18px 0 0">The number is small because Q is imperfect but still gives some probability to both outcomes. If Q assigned probability zero to an outcome that P considers possible, KL would become infinite: Q could not explain an event that actually occurs.</p><cite>Plain-English reading: how costly is it to use Q as an explanation for data generated according to P?</cite></div>
+<blockquote class="quote"><p><strong>For discrete actions, the KL divergence from the old policy p to the new policy q is:</strong></p><div class="formula"><strong>D<sub>KL</sub>(p || q) = Σ<sub>a</sub> p(a) log[p(a) / q(a)]</strong></div><p>In TRPO, <strong>p = π<sub>old</sub>(·|s)</strong> and <strong>q = π<sub>θ</sub>(·|s)</strong>. We weight each log-ratio by how likely the old policy considered that action. The result is always non-negative, equals zero only when the distributions match, and is generally asymmetric: <strong>D<sub>KL</sub>(p || q) ≠ D<sub>KL</sub>(q || p)</strong>.</p><cite>Plain-English reading: how surprising would the old policy’s actions look if we used the new policy to explain them?</cite></blockquote>
+<div class="compare"><div class="card"><h3>Small change</h3><p>Old: <strong>[0.60, 0.40]</strong><br>New: <strong>[0.52, 0.48]</strong><br><strong>D<sub>KL</sub> ≈ 0.013</strong></p></div><div class="card"><h3>Large change</h3><p>Old: <strong>[0.60, 0.40]</strong><br>New: <strong>[0.05, 0.95]</strong><br><strong>D<sub>KL</sub> ≈ 1.145</strong></p></div></div>
+<p>For every visited state, compare the old and new action probabilities. If the new policy changes those probabilities too much on average, the update is rejected or shortened.</p>
+<div class="intuition"><p>KL is not asking whether the new policy is identical. It is asking whether the change is small enough that the old policy’s data is still a trustworthy guide.</p></div>
+<div class="success"><p><strong>TRPO’s promise:</strong> improve the policy objective, but do not change the policy distribution too much in one update.</p></div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="optimization">
+<div><div class="eyebrow">Step 4</div><h2 id="optimization">How TRPO solves the constrained problem</h2></div>
+<div>
+<p>The exact constrained optimization problem is difficult for a neural network. TRPO makes a local approximation around the current parameters.</p>
+<ol><li>Compute the policy-gradient direction of the surrogate objective.</li><li>Approximate the KL constraint with a quadratic form involving the Fisher information matrix.</li><li>Use conjugate gradient to approximately solve for the best safe direction.</li><li>Perform a backtracking line search until the candidate update improves the objective and satisfies the KL limit.</li></ol>
+<p>The resulting step has the rough shape:</p>
+<div class="formula"><strong>θ<sub>new</sub> = θ<sub>old</sub> + β F<sup>−1</sup>g</strong></div>
+<p>Here <strong>g</strong> is the surrogate-objective gradient, <strong>F</strong> represents local curvature from the KL constraint, and <strong>β</strong> is chosen so the final step stays inside the trust region.</p>
+<details><summary>Why not calculate F<sup>−1</sup> directly?</summary><p>The Fisher matrix can be enormous for a neural network. TRPO only needs products such as Fv, which can be estimated with automatic differentiation. Conjugate gradient uses those products without explicitly storing or inverting the full matrix.</p></details>
+</div>
+</section>
+
+<section class="section" aria-labelledby="algorithm">
+<div><div class="eyebrow">Put it together</div><h2 id="algorithm">The TRPO algorithm</h2></div>
+<div>
+<ol><li>Collect trajectories using the current policy <strong>π<sub>old</sub></strong>.</li><li>Estimate returns and advantages.</li><li>Compute the surrogate objective and its gradient.</li><li>Use conjugate gradient to find a curvature-adjusted update direction.</li><li>Scale the direction to respect the KL trust-region size.</li><li>Use backtracking line search to accept a policy that improves the objective without violating the KL constraint.</li><li>Set the accepted policy as the new old policy and repeat.</li></ol>
+<figure class="diagram"><img src="trpo-algorithm.svg" alt="TRPO algorithm flowchart showing trajectory collection, surrogate objective, KL constraint, conjugate gradient, and line search"><figcaption>The complete TRPO update: collect experience, estimate advantages, find a safe direction, check the KL constraint, and accept only a useful policy update.</figcaption></figure>
+<div class="intuition"><p><strong>TRPO is policy gradient plus a safety rule:</strong> improve the policy, but reject updates that move it too far.</p></div>
+</div>
+</section>
+
+</main>
+<footer>Deep RL Algorithms · TRPO · <a href="index.html">All notes</a></footer>
+<script>
+  window.MathJax = { tex: { displayMath: [['\\[', '\\]']], inlineMath: [['\\(', '\\)']] }, svg: { fontCache: 'global' }, startup: { typeset: false } };
+  function formulaToTex(node) {
+    if (node.nodeType === Node.TEXT_NODE) return node.nodeValue;
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const children = Array.from(node.childNodes).map(formulaToTex).join('');
+    if (node.tagName === 'SUB') return '_{' + children + '}';
+    if (node.tagName === 'SUP') return '^{' + children + '}';
+    return children;
+  }
+  function normalizeTex(text) {
+    return text.replace(/π/g, '\\pi').replace(/θ/g, '\\theta').replace(/γ/g, '\\gamma ')
+      .replace(/δ/g, '\\delta').replace(/Â/g, '\\hat A').replace(/·/g, '\\cdot')
+      .replace(/∇/g, '\\nabla').replace(/≤/g, '\\le').replace(/−/g, '-')
+      .replace(/∞/g, '\\infty').replace(/\s+/g, ' ').trim();
+  }
+  function prepareFormulas() { document.querySelectorAll('.formula').forEach((box) => { const tex = normalizeTex(formulaToTex(box)); box.textContent = '\\[' + tex + '\\]'; }); }
+  function waitForMathJax() { if (window.MathJax && MathJax.startup && MathJax.startup.promise) { MathJax.startup.promise.then(() => { prepareFormulas(); return MathJax.typesetPromise(); }); } else window.setTimeout(waitForMathJax, 50); }
+  waitForMathJax();
+</script>
+</body>
+</html>
